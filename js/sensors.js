@@ -1,0 +1,124 @@
+import { Prefix, SensorType, Suffix } from './enums.js';
+import { Converters } from './converters.js';
+
+const Sensors = [{
+    id: 'givtcp_load_power',
+    type: SensorType.Power,
+    textElementId: 'power_home_text',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_import_power',
+    type: SensorType.Power,
+    textElementId: 'power_grid_text',
+    inverse: 'givtcp_export_power',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_export_power',
+    type: SensorType.Power,
+    textElementId: 'power_grid_text',
+    inverse: 'givtcp_import_power',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_pv_power',
+    type: SensorType.Power,
+    textElementId: 'power_solar_text',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_charge_power',
+    type: SensorType.Power,
+    textElementId: 'power_battery_text',
+    inverse: 'givtcp_discharge_power',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_discharge_power',
+    type: SensorType.Power,
+    textElementId: 'power_battery_text',
+    inverse: 'givtcp_charge_power',
+    converter: Converters.wattsToKw
+}, {
+    id: 'givtcp_grid_to_battery',
+    type: SensorType.Flow,
+    flowElementId: 'battery_with_grid'
+}, {
+    id: 'givtcp_grid_to_house',
+    type: SensorType.Flow,
+    flowElementId: 'grid_to_home',
+    nonZeroValueCheck: 'givtcp_import_power'
+}, {
+    id: 'givtcp_solar_to_battery',
+    type: SensorType.Flow,
+    flowElementId: 'solar_to_battery'
+}, {
+    id: 'givtcp_solar_to_grid',
+    type: SensorType.Flow,
+    flowElementId: 'solar_to_grid'
+}, {
+    id: 'givtcp_solar_to_house',
+    type: SensorType.Flow,
+    flowElementId: 'solar_to_home'
+}, {
+    id: 'givtcp_battery_to_grid',
+    type: SensorType.Flow,
+    flowElementId: 'battery_with_grid'
+}, {
+    id: 'givtcp_battery_to_house',
+    type: SensorType.Flow,
+    flowElementId: 'battery_to_home'
+}, {
+    id: 'givtcp_load_energy_today_kwh',
+    textElementId: 'energy_home_text',
+    type: SensorType.Summary,
+    suffix: Suffix.Energy
+}, {
+    id: 'givtcp_pv_energy_today_kwh',
+    textElementId: 'energy_solar_text',
+    type: SensorType.Summary,
+    suffix: Suffix.Energy
+}, {
+    id: 'daily_energy_peak',
+    textElementId: 'energy_imported_peak_text',
+    type: SensorType.Summary
+}, {
+    id: 'daily_energy_offpeak',
+    textElementId: 'energy_imported_offpeak_text',
+    type: SensorType.Summary
+}, {
+    id: 'givtcp_export_energy_today_kwh',
+    textElementId: 'energy_exported_text',
+    type: SensorType.Summary
+}, {
+    id: 'battery_state',
+    textElementId: 'battery_state_text',
+    type: SensorType.Summary
+}, {
+    id: 'givtcp_soc',
+    textElementId: 'battery_percentage_text',
+    type: SensorType.Summary,
+    suffix: Suffix.Percent
+}, {
+    id: 'daily_energy_cost_peak',
+    textElementId: 'energy_imported_peak_cost_text',
+    type: SensorType.Summary,
+    prefix: Prefix.Currency,
+    converter: Converters.numberToCurrency
+}, {
+    id: 'daily_energy_cost_offpeak',
+    textElementId: 'energy_imported_offpeak_cost_text',
+    type: SensorType.Summary,
+    prefix: Prefix.Currency,
+    converter: Converters.numberToCurrency
+}, {
+    id: 'daily_energy_export_income',
+    textElementId: 'energy_exported_income',
+    type: SensorType.Summary,
+    prefix: Prefix.Currency,
+    converter: Converters.numberToCurrency
+}, {
+    id: 'daily_solar_generated_income',
+    textElementId: 'solar_generated_income_text',
+    type: SensorType.Summary,
+    prefix: Prefix.Currency,
+    converter: Converters.numberToCurrency
+}];
+
+export { Sensors };

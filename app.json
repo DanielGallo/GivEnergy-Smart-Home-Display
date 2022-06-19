@@ -1,0 +1,4 @@
+{
+  "homeAssistantAccessToken": "YOUR_ACCESS_TOKEN",
+  "homeAssistantBaseDomain": "homeassistant.local:8123"
+}
