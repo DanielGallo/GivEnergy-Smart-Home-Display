@@ -14,7 +14,8 @@ The user interface of the web app is rendered completely using SVG. The only ext
 are a little use of jQuery. The rest of the app consists of raw JavaScript and CSS.
 
 Data is obtained from the inverter by using GivTCP on the local network and this is captured using a local Home Assistant
-server. The user interface of the smart home display web app grabs the data from this Home Assistant server. 
+server. The user interface of the smart home display web app grabs the data from this Home Assistant server (using a
+WebSocket connection). 
 
 The reason Home Assistant is used is it offers various energy-monitoring capabilities and automatic tariff switching, 
 and can help store energy usage data throughout the day and calculate the usage costs (taking into account the usage
