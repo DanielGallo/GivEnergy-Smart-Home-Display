@@ -61,7 +61,7 @@ standoffs.
    device running GivTCP. If this is on the same device as Home Assistant you can use `127.0.0.1`. Also set the port number,
    e.g. `1883`. This should detect all the different power and energy metrics provided by the GivEnergy inverter.
 5. In the `configuration.yaml` for Home Assistant, you will need to enable the Utility Meter (for defining your tariffs),
-   and create some sensors that the Scriptable widget requires. Here are the full contents of my `configuration.yaml` as an
+   and create some sensors that the web app requires. Here are the full contents of my `configuration.yaml` as an
    example. You will also need to change the peak and off-peak tariff rates in the code below.
 
 ```yaml
