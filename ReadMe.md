@@ -48,8 +48,8 @@ standoffs.
 
 ## Software Setup
 
-1. Follow the installation instructions for [GivTCP](https://github.com/GivEnergy/giv_tcp) and set this up  
-   somewhere on your local network so that it's running 24/7. This runs inside a Docker container.
+1. Follow the installation instructions for [GivTCP](https://github.com/GivEnergy/giv_tcp) and set this up somewhere on 
+   your local network so that it's running 24/7. This runs inside a Docker container.
 2. Once GivTCP is setup, you will need to define a few settings inside the `docker-compose.yml`:
     1. `INVERTOR_IP` - set the IP address of your GivEnergy inverter (assign a static IP to the inverter via your router if possible)
     2. `NUM_BATTERIES` - set the number of batteries connected to your GivEnergy inverter
