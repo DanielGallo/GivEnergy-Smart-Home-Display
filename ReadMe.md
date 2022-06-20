@@ -11,7 +11,7 @@ attaches directly to the Pi) when loaded in Chromium in fullscreen mode.
 ## Web Application
 
 The user interface of the web app is rendered completely using SVG. The only external dependencies for the user interface
-are a little use of jQuery. The rest of the app consists of raw JavaScript and CSS.
+are a little use of jQuery. The rest of the app consists of pure JavaScript and CSS.
 
 Data is obtained from the inverter by using GivTCP on the local network and this is captured using a local Home Assistant
 server. The user interface of the smart home display web app grabs the data from this Home Assistant server (using a
@@ -210,6 +210,8 @@ or an issue with GivTCP?
 
 Here are the upcoming plans for this smart home display app:
 
+- Investigate alternative to Home Assistant to ease setup - maybe a custom local process that logs stats and calculates 
+daily costs based on the time of use (peak vs. off-peak)
 - Have all the dependencies container-based, making it easier and quicker to set everything up on the Raspberry Pi, 
 without needing to setup external dependencies
 - Preconfigure as many dependencies as possible, to minimise the number of configuration steps
