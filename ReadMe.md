@@ -217,12 +217,14 @@ sensor:
 
 14. The install script will download and install dependencies, and configure
     the web server to launch on startup.
-15. You can then launch Chromium and try running the app by visiting `http://localhost:3000`
-16. If you want Chromium to launch the app automatically when the Pi boots up, run this command in Terminal:
+15. Copy the Home Assistant access token created in step 10 above and add it in `app.json` within the app folder.
+16. Set the domain (and port number) of your Home Assistant server in `app.json`.
+17. You can then launch Chromium and try running the app by visiting `http://localhost:3000`
+18. If you want Chromium to launch the app automatically when the Pi boots up, run this command in Terminal:
 
     `sudo nano /etc/xdg/lxsession/LXDE-pi/autostart`
 
-17. Add these lines to the above file - this will force Chromium to launch in
+19. Add these lines to the above file - this will force Chromium to launch in
     kiosk mode at startup and load the smart home display app. The mouse cursor
     is also configured to hide after 5 seconds of inactivity, so you just see the web app.
 
@@ -234,9 +236,7 @@ sensor:
     @unclutter -idle 5 -root
     ```
     
-18. Type `Ctrl` + `X` to exit, type `y` to confirm changes, then press `Enter` to save.
-19. Copy the Home Assistant access token created in step 10 above and add it in `app.json` within the app folder.
-20. Set the domain (and port number) of your Home Assistant server in `app.json`. 
+20. Type `Ctrl` + `X` to exit, type `y` to confirm changes, then press `Enter` to save.
 21. Reboot the Raspberry Pi by running this command in Terminal:
 
     `reboot`
