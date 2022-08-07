@@ -221,6 +221,19 @@ without needing to setup external dependencies
 - Incorporate the smart display inside a 3D-printed desk enclosure (there are some existing designs for housing a 
 Pi and the HyperPixel 4 screen on Thingiverse)
 
+## How to
+
+### Launch app in full screen mode on startup
+
+See https://raspberrypi.stackexchange.com/a/76336.
+
+### Turn the screen off
+
+See https://community.home-assistant.io/t/how-to-turn-off-raspberry-pi-screen/126060/5.
+
+This could be automated via a Cron task (e.g. turn the display off at 6pm every day).
+Tapping the Raspberry Pi 7" touchscreen turns it back on.
+
 ## Other Notes
 
 - SVG icons were designed and generated using https://yqnn.github.io/svg-path-editor/
