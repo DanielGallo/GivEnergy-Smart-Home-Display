@@ -5,8 +5,8 @@
 ## Introduction
 
 This is a web-based application for showing a live summary of energy data from a GivEnergy inverter. It is designed
-to run on a Raspberry Pi (in Chromium) and sized for rendering on a HyperPixel 4 display (a low-cost TFT screen that
-attaches directly to the Pi) when loaded in Chromium in fullscreen mode.
+to run on a Raspberry Pi (in Chromium) and sized for rendering on a Raspberry Pi 7" touchscreen display when loaded in 
+Chromium in fullscreen mode.
 
 ## Web Application
 
@@ -29,23 +29,33 @@ Hardware prerequisites:
   your local home network :)
 - **Raspberry Pi 3/4** - for loading this GivEnergy smart home display web app. You may also choose to install the software
   dependencies (below) on the Pi
-- **[HyperPixel 4 TFT display (non-touch version)](https://shop.pimoroni.com/products/hyperpixel-4?variant=12569539706963)** - 
-  for attaching to the Raspberry Pi board. The display is compatible with all 40-pin header Raspberry Pi models
+- **[Raspberry Pi 7" Touchscreen Display](https://shop.pimoroni.com/products/raspberry-pi-7-touchscreen-display-with-frame?variant=2677960835082)** - 
+  for attaching to the Raspberry Pi board
+- **[Pibow Touchscreen Frame](https://shop.pimoroni.com/products/raspberry-pi-7-touchscreen-display-frame?variant=6337432321)** - 
+  if you want to mount the Raspberry Pi display in a frame/stand. This also allows you to
+  attach the Raspberry Pi to the rear of the screen
+- **[Raspberry Pi 12.5W Power Supply](https://shop.pimoroni.com/products/raspberry-pi-12-5w-micro-usb-power-supply?variant=39493050237011)** - you
+  will need a decent power supply to power both the Pi and 7" screen
 
 Software prerequisites:
 
-- **[Home Assistant](https://www.home-assistant.io/)** - running on the same local network (e.g. on a Raspberry Pi or 
-  home server)
+- **[Home Assistant](https://www.home-assistant.io/)** - running on the same local network (e.g. on the Raspberry Pi or 
+  a separate home server)
 - **[GivTCP](https://github.com/GivEnergy/giv_tcp)** - this connects directly to your GivEnergy inverter and provides 
   realtime data via an MQTT broker that Home Assistant is able to read. This needs to be running on the same local 
-  network as your inverter (e.g. on a Raspberry Pi or home server)
+  network as your inverter (e.g. on the Raspberry Pi or a separate home server)
 
 ## Hardware Setup
 
-The HyperPixel 4 display attaches directly to the Raspberry Pi board using the included 40-pin header extension and 
-standoffs.
+The Raspberry Pi 7" touchscreen display attaches directly to the Raspberry Pi board using the included ribbon cable.
+The Pi can be mounted to the rear of the touchscreen using the included standoffs. The picture below shows the screen
+mounted within the Pibow Touchscreen Frame (detailed above):
 
 ![](graphics/ReadMe-2.jpg)
+
+Here is another close-up view:
+
+![](graphics/ReadMe-3.jpg)
 
 ## Software Setup
 
@@ -193,16 +203,53 @@ sensor:
 9. Restart Home Assistant and you should soon see data under the Overview and Energy sections.
 10. Generate a Long-Lived Access Token within Home Assistant, via your User Profile screen >> Long-Lived Access Tokens. 
    This is required by the GivEnergy smart home display web app.
-11. Store the access token in `app.json`.
-12. Set the domain (and port number) of your Home Assistant server in `app.json`.
-13. Boot the Raspberry Pi, attach it to the local network, and launch the web app manually in the Chromium browser (you
-can serve it using a local web server on the Pi, e.g. using [`serve`](https://www.npmjs.com/package/serve)).
+11. On the Raspberry Pi, run this command in Terminal to clone the repository:
+
+    `git clone https://github.com/DanielGallo/GivEnergy-Smart-Home-Display.git`
+
+12. "cd" into the directory:
+
+    `cd GivEnergy-Smart-Home-Display`
+
+13. Run the install script:
+
+    `sudo ./install.sh`
+
+14. The install script will download and install dependencies, and configure
+    the web server to launch on startup.
+15. You can then launch Chromium and try running the app by visiting `http://localhost:3000`
+16. If you want Chromium to launch the app automatically when the Pi boots up, run this command in Terminal:
+
+    `sudo nano /etc/xdg/lxsession/LXDE-pi/autostart`
+
+17. Add these lines to the above file - this will force Chromium to launch in
+    kiosk mode at startup and load the smart home display app. The mouse cursor
+    is also configured to hide after 5 seconds of inactivity, so you just see the web app.
+
+    ```
+    @xset s off
+    @xset -dpms
+    @xset s noblank
+    @chromium-browser --kiosk http://localhost:3000
+    @unclutter -idle 5 -root
+    ```
+    
+18. Type `Ctrl` + `X` to exit, type `y` to confirm changes, then press `Enter` to save.
+19. Copy the Home Assistant access token created in step 10 above and add it in `app.json` within the app folder.
+20. Set the domain (and port number) of your Home Assistant server in `app.json`. 
+21. Reboot the Raspberry Pi by running this command in Terminal:
+
+    `reboot`
+
+22. On startup, Chromium should launch and the web app should be loaded.
+23. If you have any feedback or spot an issue with the instructions above, please share your comments by creating
+    a new issue [here](https://github.com/DanielGallo/GivEnergy-Smart-Home-Display/issues).
 
 ## Current Issues and Limitations
 
 - There is normally a ~15% disparity between the reported battery discharge rate (`givtcp_discharge_power`) and the 
 load rate (`givtcp_load_power`), for example the battery may show a discharge rate of 1.6 kW, but the house is only 
-using 1.4 kW. Do the GivEnergy team know why this might be happening? Is it simply the loss of converting DC to AC, 
+using 1.4 kW. Perhaps the GivEnergy team know why this might be happening - is it simply the loss of converting DC to AC, 
 or an issue with GivTCP?
 - Sometimes the arrows show power flow, when the sources (e.g. grid) are 0.00 kW - need to zero-out these values
 
@@ -216,10 +263,7 @@ daily costs based on the time of use (peak vs. off-peak)
 without needing to setup external dependencies
 - Preconfigure as many dependencies as possible, to minimise the number of configuration steps
 - Add error handling (show friendly errors) when things go wrong, e.g. wrong URL, no access token, etc.
-- Automatically launch the web app in Chromium full screen mode when the Raspberry Pi boots
-- Implement a power saving mode to allow the user to define the hours when the screen is powered off
-- Incorporate the smart display inside a 3D-printed desk enclosure (there are some existing designs for housing a 
-Pi and the HyperPixel 4 screen on Thingiverse)
+- Implement a power saving mode to allow the user to define the hours when the screen is powered off (see below)
 
 ## How to
 
