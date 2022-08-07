@@ -115,7 +115,7 @@ class App {
                 modified: new Date(sensorData.last_changed)
             };
 
-            let cachedSensor = me.cache[sensor.id];
+            let cachedSensor = me.cache[entityId];
 
             if (sensor.type === SensorType.Summary) {
                 element = $(`#${sensor.textElementId}`);
@@ -136,18 +136,22 @@ class App {
                 element = $(`#${sensor.flowElementId}`);
                 value = cachedSensor.value;
 
-                if (sensor.nonZeroValueCheck) {
-                    // Only show this sensor's value if the dependent sensor (if defined) has a value, otherwise
-                    // default it to zero
-                    let altValue = me.cache[sensor.nonZeroValueCheck];
-                    if (parseFloat(altValue) < 0.1) {
-                        value = 0;
+                if (value > 0 && sensor.nonZeroValueCheck) {
+                    // Check if the dependent sensor (if defined) has a value, and whether the dependent sensor
+                    // has an inverse sensor. If so, check which of those sensor values is newer.
+                    let dependentSensor = me.cache[sensor.nonZeroValueCheck];
+                    let inverseSensor = Sensors.filter(e => e.id === sensor.nonZeroValueCheck)[0].inverse;
+
+                    if (inverseSensor) {
+                        let inverseDependentSensor = me.cache[inverseSensor];
+
+                        if (dependentSensor.modified > inverseDependentSensor.modified) {
+                            value = dependentSensor.value;
+                        } else {
+                            value = inverseDependentSensor.value;
+                        }
                     }
                 }
-            } else {
-                // TODO: Remove?
-                element = $(`#${entityId}`);
-                value = cachedSensor.value;
             }
 
             let group = null;
@@ -161,7 +165,7 @@ class App {
                     // Arc flow
                     arrow = 'arc-arrow';
 
-                    if (sensor.id === 'givtcp_grid_to_battery' || sensor.id === 'givtcp_solar_to_grid') {
+                    if (entityId === 'givtcp_grid_to_battery' || entityId === 'givtcp_solar_to_grid') {
                         arrow = 'arc-arrow-opposite';
                     }
 
