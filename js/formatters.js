@@ -14,6 +14,11 @@ class Formatters {
             text = sensor.converter.call(me, text);
         }
 
+        // If the value requires other special formatting
+        if (sensor.formatter) {
+            text = sensor.formatter.call(me, text);
+        }
+
         // Add any prefix
         if (sensor.prefix) {
             text = `${sensor.prefix}${text}`;
@@ -25,6 +30,10 @@ class Formatters {
         }
 
         return text;
+    }
+
+    static roundToOneDecimalPlace(value) {
+        return value.toFixed(1);
     }
 }
 

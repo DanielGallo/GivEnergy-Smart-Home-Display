@@ -1,4 +1,5 @@
 {
-  "homeAssistantAccessToken": "YOUR_ACCESS_TOKEN",
-  "homeAssistantBaseDomain": "homeassistant.local:8123"
+  "givTcpHostname": "localhost:6345",
+  "solarRate": 0.138,
+  "exportRate": 0.041
 }

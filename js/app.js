@@ -1,96 +1,106 @@
 import { SensorType } from './enums.js';
 import { Sensors } from './sensors.js';
+import { Helpers } from './helpers.js';
 import { Formatters } from './formatters.js';
+import { Converters } from './converters.js';
 
 class App {
     constructor() {
         const me = this;
 
-        me.homeAssistantApiKey = null;
-        me.homeAssistantBaseDomain = null;
+        me.givTcpHostname = null;
+        me.solarRate = null;
+        me.exportRate = null;
 
-        // Fetch the Home Assistant access token and base URL from `app.json`
+        // Fetch the settings from `app.json`
         fetch("./app.json")
             .then(response => {
                 return response.json();
             })
             .then(data => {
-                me.homeAssistantAccessToken = data.homeAssistantAccessToken;
-                me.homeAssistantBaseDomain = data.homeAssistantBaseDomain;
+                me.givTcpHostname = data.givTcpHostname;
+                me.solarRate = data.solarRate;
+                me.exportRate = data.exportRate;
 
-                if (me.homeAssistantAccessToken != null && me.homeAssistantBaseDomain != null) {
+                if (me.givTcpHostname != null && me.solarRate != null && me.exportRate != null) {
                     me.launch();
                 }
             });
     }
 
     /**
-     * Establish the WebSocket connection to Home Assistant
+     * Fetch the initial set of data and setup a routine to fetch the data every 10 seconds
      */
     launch() {
         const me = this;
 
-        me.webSocket = new WebSocket(`ws://${me.homeAssistantBaseDomain}/api/websocket`);
-        me.webSocket.onopen = () => this.onWebSocketOpen();
-        me.webSocket.onclose = () => this.onWebSocketClose();
-        me.webSocket.onmessage = (event) => this.onWebSocketMessage(event);
+        // Get the initial set of data
+        me.fetchData();
 
-        me.cache = {};
+        // Repopulate the data every 10 seconds
+        setInterval(me.fetchData.bind(me), 10000);
     }
 
     /**
-     * Once the WebSocket connection is open, authenticate with Home Assistant
+     * Fetch the latest values from GivTCP
      */
-    onWebSocketOpen() {
+    fetchData() {
         const me = this;
 
-        me.webSocket.send(JSON.stringify({
-            type: 'auth',
-            access_token: me.homeAssistantAccessToken
-        }));
-    }
-
-    onWebSocketClose() {
-        console.log('Connection closed');
+        fetch(`http://${me.givTcpHostname}/readData`, {
+            mode: 'cors',
+            headers: {
+                'Access-Control-Allow-Origin': 'localhost:63342'
+            }
+        }).then(response => {
+            return response.json();
+        }).then(data => {
+            me.onResponse(data)
+        });
     }
 
     /**
-     * Respond to incoming messages (data) from Home Assistant
-     * @param event
+     * Successful response from GivTCP
+     * @param data
      */
-    onWebSocketMessage(event) {
+    onResponse(data) {
         const me = this;
-        let data = JSON.parse(event.data);
 
-        if (data.type === 'auth_ok') {
-            // Authentication was successful, so get the initial states of sensor values and summary data, so that
-            // we have data to show in the user interface when the app first renders
-            me.webSocket.send(JSON.stringify({
-                id: 10,
-                type: 'get_states'
-            }));
+        me.updateTimeStamp();
 
-            // And subscribe to any sensor changes
-            me.webSocket.send(JSON.stringify({
-                id: 11,
-                type: 'subscribe_events',
-                event_type: 'state_changed'
-            }));
-        } else if (data.type === 'result' && data.result) {
-            // Loop through the initial set of values - these are shown when the page first loads
-            for (let i = 0; i < data.result.length; i ++) {
-                let item = data.result[i];
+        for (let i in Sensors) {
+            let sensor = Sensors[i];
+            let node = null;
+            let value = null;
 
-                me.processItem(item);
+            if (sensor.mapping) {
+                value = Helpers.getPropertyValueFromMapping(data, sensor.mapping);
             }
 
-            me.updateTimeStamp();
-        } else if (data.type === 'event') {
-            // Then update the UI as individual data updates come in from Home Assistant
-            let sensorData = data.event.data.new_state;
+            // Some sensors require calculation of the values
+            if (sensor.id === 'Battery_State') {
+                let chargeRate = data.Power.Power.Charge_Power;
+                let dischargeRate = data.Power.Power.Discharge_Power;
 
-            me.processItem(sensorData);
-            me.updateTimeStamp();
+                if (dischargeRate > 0) {
+                    value = "Discharging";
+                } else if (chargeRate > 0) {
+                    value = "Charging";
+                } else {
+                    value = "Idle";
+                }
+            } else if (sensor.id === 'Solar_Income' || sensor.id === 'Export_Income') {
+                let income = value * me.solarRate;
+
+                value = Converters.numberToCurrency(income);
+            }
+
+            if (value) {
+                me.processItem({
+                    sensor: sensor,
+                    value: value
+                });
+            }
         }
     }
 
@@ -100,111 +110,69 @@ class App {
      * @param sensorData An individual sensor data object
      */
     processItem(sensorData) {
-        const me = this;
-        const entityId = sensorData.entity_id.substring(sensorData.entity_id.indexOf('.') + 1);
+        const entityId = sensorData.sensor.id;
+        const sensor = sensorData.sensor;
 
-        // If the data update from Home Assistant is one we're interested in (i.e. it exists in `sensors.js`)
-        if (Sensors.some(e => e.id === entityId)) {
-            const sensor = Sensors.filter(e => e.id === entityId)[0];   // Lookup the sensor info, defined in `sensors.js`
-            let value = null;
-            let element = null;
+        let value = sensorData.value;
+        let element = null;
+        let group = null;
+        let line = null;
+        let arrow = null;
 
-            // Store a cache of the latest sensor values, and when they were last changed
-            me.cache[entityId] = {
-                value: sensorData.state,
-                modified: new Date(sensorData.last_changed)
-            };
+        if (sensor.type === SensorType.Summary) {
+            element = $(`#${sensor.textElementId}`);
+        } else if (sensor.type === SensorType.Power) {
+            element = $(`#${sensor.textElementId}`);
+        } else if (sensor.type === SensorType.Flow) {
+            element = $(`#${sensor.flowElementId}`);
+        }
 
-            let cachedSensor = me.cache[entityId];
+        if (sensor.type === SensorType.Flow) {
+            group = element;
 
-            if (sensor.type === SensorType.Summary) {
-                element = $(`#${sensor.textElementId}`);
-                value = cachedSensor.value;
-            } else if (sensor.type === SensorType.Power) {
-                element = $(`#${sensor.textElementId}`);
+            if (group.children('path').length > 0) {
+                // Arc flow
+                arrow = 'arc-arrow';
 
-                let inverseSensorCache = me.cache[sensor.inverse];
-
-                // If it's a value that will be shown in a circle, figure out which value to show - there might
-                // be an inverse value that is more recent (e.g. import vs. export)
-                if (inverseSensorCache && inverseSensorCache.modified > cachedSensor.modified) {
-                    value = inverseSensorCache.value;
-                } else {
-                    value = cachedSensor.value;
+                if (entityId === 'Grid_to_Battery' || entityId === 'Solar_to_Grid') {
+                    arrow = 'arc-arrow-opposite';
                 }
-            } else if (sensor.type === SensorType.Flow) {
-                element = $(`#${sensor.flowElementId}`);
-                value = cachedSensor.value;
 
-                if (value > 0 && sensor.nonZeroValueCheck) {
-                    // Check if the dependent sensor (if defined) has a value, and whether the dependent sensor
-                    // has an inverse sensor. If so, check which of those sensor values is newer.
-                    let dependentSensor = me.cache[sensor.nonZeroValueCheck];
-                    let inverseSensor = Sensors.filter(e => e.id === sensor.nonZeroValueCheck)[0].inverse;
-
-                    if (inverseSensor) {
-                        let inverseDependentSensor = me.cache[inverseSensor];
-
-                        if (dependentSensor.modified > inverseDependentSensor.modified) {
-                            value = dependentSensor.value;
-                        } else {
-                            value = inverseDependentSensor.value;
-                        }
-                    }
-                }
-            }
-
-            let group = null;
-            let line = null;
-            let arrow = null;
-
-            if (sensor.type === SensorType.Flow) {
-                group = element;
-
-                if (group.children('path').length > 0) {
-                    // Arc flow
-                    arrow = 'arc-arrow';
-
-                    if (entityId === 'givtcp_grid_to_battery' || entityId === 'givtcp_solar_to_grid') {
-                        arrow = 'arc-arrow-opposite';
-                    }
-
-                    line = group.children('path')[0];
-                } else {
-                    // Line flow
-                    arrow = 'line-arrow';
-                    line = group.children('line')[0];
-                }
-            } else if (sensor.type === SensorType.Power) {
+                line = group.children('path')[0];
+            } else {
+                // Line flow
                 arrow = 'line-arrow';
-                group = element.parent().parent();
-                element.text(Formatters.sensorValue(value, sensor));
-
-                if (group.children('line').length > 0) {
-                    line = group.children('line')[0];
-                }
-            } else if (sensor.type === SensorType.Summary) {
-                element.text(Formatters.sensorValue(value, sensor));
+                line = group.children('line')[0];
             }
+        } else if (sensor.type === SensorType.Power) {
+            arrow = 'line-arrow';
+            group = element.parent().parent();
+            element.text(Formatters.sensorValue(value, sensor));
 
-            if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
-                if (parseFloat(value) < 0.01) {
-                    // If value is less than 0.01 kW, mark the line/group as Idle
-                    if (line) {
-                        line.setAttribute("marker-end", "");
-                    }
+            if (group.children('line').length > 0) {
+                line = group.children('line')[0];
+            }
+        } else if (sensor.type === SensorType.Summary) {
+            element.text(Formatters.sensorValue(value, sensor));
+        }
 
-                    group.removeClass('active');
-                    group.addClass('idle');
-                } else {
-                    // Active
-                    if (line) {
-                        line.setAttribute("marker-end", `url(#${arrow})`);
-                    }
-
-                    group.removeClass('idle');
-                    group.addClass('active');
+        if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
+            if (parseFloat(value) < 0.01) {
+                // If value is less than 0.01 kW, mark the line/group as Idle
+                if (line) {
+                    line.setAttribute("marker-end", "");
                 }
+
+                group.removeClass('active');
+                group.addClass('idle');
+            } else {
+                // Active
+                if (line) {
+                    line.setAttribute("marker-end", `url(#${arrow})`);
+                }
+
+                group.removeClass('idle');
+                group.addClass('active');
             }
         }
     }
