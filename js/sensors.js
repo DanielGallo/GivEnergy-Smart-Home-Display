@@ -92,15 +92,19 @@ const Sensors = [{
     type: SensorType.Summary,
     suffix: Suffix.Energy,
     formatter: Formatters.roundToOneDecimalPlace
-}, /*{
+}, {
     id: 'daily_energy_peak',
+    mapping: 'Energy.Rates.day_energy',
     textElementId: 'energy_imported_peak_text',
-    type: SensorType.Summary
+    type: SensorType.Summary,
+    formatter: Formatters.roundToOneDecimalPlace
 }, {
     id: 'daily_energy_offpeak',
+    mapping: 'Energy.Rates.night_energy',
     textElementId: 'energy_imported_offpeak_text',
-    type: SensorType.Summary
-},*/ {
+    type: SensorType.Summary,
+    formatter: Formatters.roundToOneDecimalPlace
+}, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_text',
@@ -116,19 +120,21 @@ const Sensors = [{
     textElementId: 'battery_percentage_text',
     type: SensorType.Summary,
     suffix: Suffix.Percent
-}, /*{
+}, {
     id: 'daily_energy_cost_peak',
+    mapping: 'Energy.Rates.day_cost',
     textElementId: 'energy_imported_peak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency
 }, {
     id: 'daily_energy_cost_offpeak',
+    mapping: 'Energy.Rates.night_cost',
     textElementId: 'energy_imported_offpeak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency
-},*/ {
+}, {
     id: 'Export_Income',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_income',
