@@ -185,19 +185,11 @@ class App {
         const date = new Date();
         let hours = date.getHours();
         let minutes = date.getMinutes();
+        let suffix = hours >= 12 ? 'pm' : 'am';
 
-        if (minutes < 10) {
-            minutes = '0' + minutes;
-        }
-
-        let suffix = 'am';
-
-        if (hours > 12) {
-            hours -= 12;
-            suffix = 'pm';
-        } else if (hours === 0) {
-            hours = 12;
-        }
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        minutes = minutes < 10 ? '0' + minutes : minutes;
 
         clock.text(`${hours}:${minutes}${suffix}`);
     }
