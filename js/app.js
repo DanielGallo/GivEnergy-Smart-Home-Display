@@ -70,7 +70,6 @@ class App {
 
         for (let i in Sensors) {
             let sensor = Sensors[i];
-            let node = null;
             let value = null;
 
             if (sensor.mapping) {
@@ -95,13 +94,17 @@ class App {
                 value = Converters.numberToCurrency(income);
             }
 
-            if (value) {
+            // Process the sensor if there's a value and it's non-zero,
+            // or process the sensor if forced (e.g. to reset the daily usage stats to zero at midnight)
+            if (value || sensor.forceRefresh) {
                 me.processItem({
                     sensor: sensor,
                     value: value
                 });
             }
         }
+
+        console.log(' ');
     }
 
     /**

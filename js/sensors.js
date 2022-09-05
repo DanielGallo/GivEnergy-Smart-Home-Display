@@ -84,32 +84,37 @@ const Sensors = [{
     textElementId: 'energy_home_text',
     type: SensorType.Summary,
     suffix: Suffix.Energy,
-    formatter: Formatters.roundToOneDecimalPlace
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true
 }, {
     id: 'PV_Energy_Today_kWh',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
     textElementId: 'energy_solar_text',
     type: SensorType.Summary,
     suffix: Suffix.Energy,
-    formatter: Formatters.roundToOneDecimalPlace
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true
 }, {
     id: 'daily_energy_peak',
     mapping: 'Energy.Rates.day_energy',
     textElementId: 'energy_imported_peak_text',
     type: SensorType.Summary,
-    formatter: Formatters.roundToOneDecimalPlace
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true
 }, {
     id: 'daily_energy_offpeak',
     mapping: 'Energy.Rates.night_energy',
     textElementId: 'energy_imported_offpeak_text',
     type: SensorType.Summary,
-    formatter: Formatters.roundToOneDecimalPlace
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true
 }, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_text',
     type: SensorType.Summary,
-    formatter: Formatters.roundToOneDecimalPlace
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true
 }, {
     id: 'Battery_State',
     textElementId: 'battery_state_text',
@@ -126,28 +131,32 @@ const Sensors = [{
     textElementId: 'energy_imported_peak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
-    converter: Converters.numberToCurrency
+    converter: Converters.numberToCurrency,
+    forceRefresh: true
 }, {
     id: 'daily_energy_cost_offpeak',
     mapping: 'Energy.Rates.night_cost',
     textElementId: 'energy_imported_offpeak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
-    converter: Converters.numberToCurrency
+    converter: Converters.numberToCurrency,
+    forceRefresh: true
 }, {
     id: 'Export_Income',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_income',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
-    converter: Converters.numberToCurrency
+    converter: Converters.numberToCurrency,
+    forceRefresh: true
 }, {
     id: 'Solar_Income',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
     textElementId: 'solar_generated_income_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
-    converter: Converters.numberToCurrency
+    converter: Converters.numberToCurrency,
+    forceRefresh: true
 }];
 
 export { Sensors };
