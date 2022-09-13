@@ -1,4 +1,4 @@
-import { SensorType } from './enums.js';
+import { SensorType, Suffix } from './enums.js';
 import { Sensors } from './sensors.js';
 import { Helpers } from './helpers.js';
 import { Formatters } from './formatters.js';
@@ -11,6 +11,7 @@ class App {
         me.givTcpHostname = null;
         me.solarRate = null;
         me.exportRate = null;
+        me.rendered = false;
 
         // Fetch the settings from `app.json`
         fetch("./app.json")
@@ -66,7 +67,7 @@ class App {
     onResponse(data) {
         const me = this;
 
-        me.updateTimeStamp();
+        me.updateTimeStamp(data);
 
         for (let i in Sensors) {
             let sensor = Sensors[i];
@@ -103,8 +104,6 @@ class App {
                 });
             }
         }
-
-        console.log(' ');
     }
 
     /**
@@ -113,6 +112,7 @@ class App {
      * @param sensorData An individual sensor data object
      */
     processItem(sensorData) {
+        const me = this;
         const entityId = sensorData.sensor.id;
         const sensor = sensorData.sensor;
 
@@ -122,9 +122,7 @@ class App {
         let line = null;
         let arrow = null;
 
-        if (sensor.type === SensorType.Summary) {
-            element = $(`#${sensor.textElementId}`);
-        } else if (sensor.type === SensorType.Power) {
+        if ((sensor.type === SensorType.Summary || sensor.type === SensorType.Power) && sensor.textElementId) {
             element = $(`#${sensor.textElementId}`);
         } else if (sensor.type === SensorType.Flow) {
             element = $(`#${sensor.flowElementId}`);
@@ -155,6 +153,60 @@ class App {
             if (group.children('line').length > 0) {
                 line = group.children('line')[0];
             }
+        } else if (sensor.type === SensorType.Summary && sensor.id === 'Battery_Statistics') {
+            let batteries = value;
+            let svgContainerElement = $('#inverter_panel')[0];
+            let svgCloneableElement = $('#batteryDetails')[0];
+            let offsetY = 130;
+            let offsetAddition = 85;
+            let i = 0;
+
+            // On first load, render the battery statistics panels
+            if (!me.rendered) {
+                // The number of batteries can vary, so iterate over each battery
+                for (let battery in batteries) {
+                    let svgClonedElement = svgCloneableElement.cloneNode(true);
+                    svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
+                    svgClonedElement.setAttribute('style', '');
+                    svgClonedElement.setAttribute('id', `battery_${battery}`);
+
+                    svgContainerElement.appendChild(svgClonedElement);
+
+                    let batteryNameEl = $(`#battery_${battery} > text.label`);
+                    batteryNameEl.text(`Battery ${++i}`);
+
+                    offsetY = offsetY + offsetAddition;
+                }
+
+                me.rendered = true;
+            }
+
+            // Now populate or update the values being shown in the battery statistics panels
+            for (let battery in batteries) {
+                let batteryData = batteries[battery];
+
+                // Calculate the remaining capacity (in kWh) of the battery
+                let remainingAh = batteryData['Battery_Remaining_Capacity'];
+                let batteryVoltage = batteryData['Battery_Voltage'];
+                let remainingKWh = (remainingAh * batteryVoltage) / 1000;
+
+                let stateOfChargeEl = $(`#battery_${battery} >> tspan.state_of_charge`);
+                stateOfChargeEl.text(Formatters.sensorValue(batteryData['Battery_SOC'], {
+                    suffix: Suffix.Percent
+                }));
+
+                let remainingCapacityEl = $(`#battery_${battery} >> tspan.remaining_capacity`);
+                remainingCapacityEl.text(Formatters.sensorValue(remainingKWh, {
+                    suffix: Suffix.Energy,
+                    formatter: Formatters.roundToOneDecimalPlace
+                }));
+
+                let temperatureEl = $(`#battery_${battery} >> tspan.temperature`);
+                temperatureEl.text(Formatters.sensorValue(batteryData['Battery_Temperature'], {
+                    suffix: Suffix.Temperature,
+                    formatter: Formatters.roundToOneDecimalPlace
+                }));
+            }
         } else if (sensor.type === SensorType.Summary) {
             element.text(Formatters.sensorValue(value, sensor));
         }
@@ -181,20 +233,31 @@ class App {
     }
 
     /**
-     * Updates the time in the UI to let the user know when the data was last refreshed
+     * Updates the time in the UI to let the user know when the data was last refreshed by GivTCP
      */
-    updateTimeStamp() {
-        const clock = $('#clock');
-        const date = new Date();
-        let hours = date.getHours();
-        let minutes = date.getMinutes();
-        let suffix = hours >= 12 ? 'pm' : 'am';
+    updateTimeStamp(data) {
+        if (data && data['Last_Updated_Time']) {
+            const clock = $('#clock');
+            const dateUpdated = new Date(data['Last_Updated_Time']);
+            const dateDiff = (new Date() - dateUpdated) / 1000;
 
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        minutes = minutes < 10 ? '0' + minutes : minutes;
+            let hours = dateUpdated.getHours();
+            let minutes = dateUpdated.getMinutes();
+            let suffix = hours >= 12 ? 'pm' : 'am';
 
-        clock.text(`${hours}:${minutes}${suffix}`);
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+
+            clock.text(`${hours}:${minutes}${suffix}`);
+
+            // If the inverter data is older than 3 minutes, add a red border to the clock to illustrate a possible issue
+            if (dateDiff > 180) {
+                clock.addClass('overdue');
+            } else {
+                clock.removeClass('overdue');
+            }
+        }
     }
 }
 

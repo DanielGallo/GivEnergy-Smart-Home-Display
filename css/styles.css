@@ -11,6 +11,18 @@ body {
     color: #ffffff;
 }
 
+text {
+    fill: #ffffff;
+}
+
+text.grouper {
+    font-size: 0px;
+}
+
+text.grouper tspan {
+    font-size: 14pt;
+}
+
 .circle_scale {
     font-size: 65%;
 }
@@ -38,15 +50,21 @@ marker path.connector {
     stroke-width: 2;
 }
 
-#summary_panel text {
-    fill: #ffffff;
-}
-
 #summary_panel text.clock {
     fill: #c9c9c9;
 }
 
-#summary_panel tspan.label {
+text.overdue {
+    stroke: #ff0c00;
+    stroke-width: 1;
+}
+
+#inverter_panel tspan, #inverter_panel text.label {
+    fill: #e8e8e8;
+    font-size: 11pt;
+}
+
+tspan.label, text.label {
     font-weight: bold;
     font-size: 100%;
 }

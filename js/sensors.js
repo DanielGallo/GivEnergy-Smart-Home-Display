@@ -46,38 +46,45 @@ const Sensors = [{
     id: 'Grid_to_Battery',
     mapping: 'Power.Flows.Grid_to_Battery',
     type: SensorType.Flow,
-    flowElementId: 'battery_with_grid'
+    flowElementId: 'battery_with_grid',
+    forceRefresh: true
 }, {
     id: 'Grid_to_House',
     mapping: 'Power.Flows.Grid_to_House',
     type: SensorType.Flow,
     flowElementId: 'grid_to_home',
-    nonZeroValueCheck: 'givtcp_import_power'
+    nonZeroValueCheck: 'givtcp_import_power',
+    forceRefresh: true
 }, {
     id: 'Solar_to_Battery',
     mapping: 'Power.Flows.Solar_to_Battery',
     type: SensorType.Flow,
-    flowElementId: 'solar_to_battery'
+    flowElementId: 'solar_to_battery',
+    forceRefresh: true
 }, {
     id: 'Solar_to_Grid',
     mapping: 'Power.Flows.Solar_to_Grid',
     type: SensorType.Flow,
-    flowElementId: 'solar_to_grid'
+    flowElementId: 'solar_to_grid',
+    forceRefresh: true
 }, {
     id: 'Solar_to_House',
     mapping: 'Power.Flows.Solar_to_House',
     type: SensorType.Flow,
-    flowElementId: 'solar_to_home'
+    flowElementId: 'solar_to_home',
+    forceRefresh: true
 }, {
     id: 'Battery_to_Grid',
     mapping: 'Power.Flows.Battery_to_Grid',
     type: SensorType.Flow,
-    flowElementId: 'battery_with_grid'
+    flowElementId: 'battery_with_grid',
+    forceRefresh: true
 }, {
     id: 'Battery_to_House',
     mapping: 'Power.Flows.Battery_to_House',
     type: SensorType.Flow,
-    flowElementId: 'battery_to_home'
+    flowElementId: 'battery_to_home',
+    forceRefresh: true
 }, {
     id: 'Load_Energy_Today_kWh',
     mapping: 'Energy.Today.Load_Energy_Today_kWh',
@@ -157,6 +164,37 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true
+}, {
+    id: 'Inverter_Temperature',
+    mapping: 'Inverter_Details.Inverter_Temperature',
+    textElementId: 'inverter_temperature',
+    type: SensorType.Summary,
+    suffix: Suffix.Temperature,
+    formatter: Formatters.roundToOneDecimalPlace
+}, {
+    id: 'Power_Reserve',
+    mapping: 'Control.Battery_Power_Reserve',
+    textElementId: 'power_reserve',
+    type: SensorType.Summary,
+    suffix: Suffix.Percent
+}, {
+    id: 'Grid_Voltage',
+    mapping: 'raw.inverter.v_ac1',
+    textElementId: 'grid_voltage',
+    type: SensorType.Summary,
+    suffix: Suffix.Voltage,
+    formatter: Formatters.roundToOneDecimalPlace
+}, {
+    id: 'Grid_Frequency',
+    mapping: 'raw.inverter.f_ac1',
+    textElementId: 'grid_frequency',
+    type: SensorType.Summary,
+    suffix: Suffix.Frequency,
+    formatter: Formatters.roundToOneDecimalPlace
+}, {
+    id: 'Battery_Statistics',
+    mapping: 'Battery_Details',
+    type: SensorType.Summary
 }];
 
 export { Sensors };
