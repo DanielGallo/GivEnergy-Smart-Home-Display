@@ -64,8 +64,7 @@ const Sensors = [{
     id: 'Battery_to_Grid',
     mapping: 'Power.Flows.Battery_to_Grid',
     type: SensorType.Flow,
-    flowElementId: 'battery_with_grid',
-    forceRefresh: true
+    flowElementId: 'battery_with_grid'
 }, {
     id: 'Battery_to_House',
     mapping: 'Power.Flows.Battery_to_House',

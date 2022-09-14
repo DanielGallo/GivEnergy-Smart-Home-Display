@@ -300,10 +300,11 @@ class App {
         if (me.cachedData && me.cachedData['Last_Updated_Time']) {
             const refreshIntervalText = $('#refreshIntervalText');
             const dateUpdated = new Date(me.cachedData['Last_Updated_Time']);
-            const seconds = Formatters.renderLargeNumber(Math.round((new Date() - dateUpdated) / 1000));
+            const seconds = Math.round((new Date() - dateUpdated) / 1000);
+            const secondsText = Formatters.renderLargeNumber(seconds < 0 ? 0 : seconds);
             const suffix = seconds === 1 ? '': 's';
 
-            refreshIntervalText.text(`Inverter data last updated ${seconds} second${suffix} ago`);
+            refreshIntervalText.text(`Inverter data last updated ${secondsText} second${suffix} ago`);
         }
     }
 }
