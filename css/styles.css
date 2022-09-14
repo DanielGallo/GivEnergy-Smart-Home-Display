@@ -51,7 +51,12 @@ marker path.connector {
 }
 
 #summary_panel text.clock {
-    fill: #c9c9c9;
+    fill: #b6b6b6;
+}
+
+text.refreshText {
+    fill: #9f9f9f;
+    font-size: 9pt;
 }
 
 text.overdue {
@@ -59,9 +64,12 @@ text.overdue {
     stroke-width: 1;
 }
 
-#inverter_panel tspan, #inverter_panel text.label {
-    fill: #e8e8e8;
-    font-size: 11pt;
+#inverter_panel tspan {
+    font-size: 12pt;
+}
+
+#inverter_panel text.label {
+    font-size: 14pt;
 }
 
 tspan.label, text.label {

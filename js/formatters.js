@@ -35,6 +35,10 @@ class Formatters {
     static roundToOneDecimalPlace(value) {
         return value.toFixed(1);
     }
+
+    static renderLargeNumber(value) {
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
 }
 
 export { Formatters };

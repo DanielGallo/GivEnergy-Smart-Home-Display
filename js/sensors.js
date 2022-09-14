@@ -9,39 +9,26 @@ const Sensors = [{
     textElementId: 'power_home_text',
     converter: Converters.wattsToKw
 }, {
-    id: 'Import_Power',
-    mapping: 'Power.Power.Import_Power',
+    id: 'Grid_Power',
+    mapping: 'Power.Power.Grid_Power',
     type: SensorType.Power,
     textElementId: 'power_grid_text',
-    inverse: 'givtcp_export_power',
-    converter: Converters.wattsToKw
-}, {
-    id: 'Export_Power',
-    mapping: 'Power.Power.Export_Power',
-    type: SensorType.Power,
-    textElementId: 'power_grid_text',
-    inverse: 'givtcp_import_power',
-    converter: Converters.wattsToKw
+    converter: Converters.wattsToKw,
+    forceRefresh: true
 }, {
     id: 'PV_Power',
     mapping: 'Power.Power.PV_Power',
     type: SensorType.Power,
     textElementId: 'power_solar_text',
-    converter: Converters.wattsToKw
+    converter: Converters.wattsToKw,
+    forceRefresh: true
 }, {
-    id: 'Charge_Power',
-    mapping: 'Power.Power.Charge_Power',
+    id: 'Battery_Power',
+    mapping: 'Power.Power.Battery_Power',
     type: SensorType.Power,
     textElementId: 'power_battery_text',
-    inverse: 'givtcp_discharge_power',
-    converter: Converters.wattsToKw
-}, {
-    id: 'Discharge_Power',
-    mapping: 'Power.Power.Discharge_Power',
-    type: SensorType.Power,
-    textElementId: 'power_battery_text',
-    inverse: 'givtcp_charge_power',
-    converter: Converters.wattsToKw
+    converter: Converters.wattsToKw,
+    forceRefresh: true
 }, {
     id: 'Grid_to_Battery',
     mapping: 'Power.Flows.Grid_to_Battery',
@@ -178,6 +165,12 @@ const Sensors = [{
     type: SensorType.Summary,
     suffix: Suffix.Percent
 }, {
+    id: 'Target_SOC',
+    mapping: 'Control.Target_SOC',
+    textElementId: 'target_soc',
+    type: SensorType.Summary,
+    suffix: Suffix.Percent
+}, /*{
     id: 'Grid_Voltage',
     mapping: 'raw.inverter.v_ac1',
     textElementId: 'grid_voltage',
@@ -191,7 +184,7 @@ const Sensors = [{
     type: SensorType.Summary,
     suffix: Suffix.Frequency,
     formatter: Formatters.roundToOneDecimalPlace
-}, {
+},*/ {
     id: 'Battery_Statistics',
     mapping: 'Battery_Details',
     type: SensorType.Summary

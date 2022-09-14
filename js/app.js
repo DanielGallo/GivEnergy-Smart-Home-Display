@@ -11,6 +11,7 @@ class App {
         me.givTcpHostname = null;
         me.solarRate = null;
         me.exportRate = null;
+        me.cachedData = null;
         me.rendered = false;
 
         // Fetch the settings from `app.json`
@@ -27,6 +28,12 @@ class App {
                     me.launch();
                 }
             });
+
+        // When the window is resized, check whether the layout needs switching between portrait and landscape mode
+        window.addEventListener('resize', me.resizeCanvas.bind(me), true);
+
+        // Do an initial layout check when first loading
+        me.resizeCanvas();
     }
 
     /**
@@ -38,8 +45,8 @@ class App {
         // Get the initial set of data
         me.fetchData();
 
-        // Repopulate the data every 10 seconds
-        setInterval(me.fetchData.bind(me), 10000);
+        // Fetch the data from GivTCP every 8 seconds
+        setInterval(me.fetchData.bind(me), 8000);
     }
 
     /**
@@ -51,7 +58,7 @@ class App {
         fetch(`http://${me.givTcpHostname}/readData`, {
             mode: 'cors',
             headers: {
-                'Access-Control-Allow-Origin': 'localhost:63342'
+                'Access-Control-Allow-Origin': '*'
             }
         }).then(response => {
             return response.json();
@@ -67,7 +74,10 @@ class App {
     onResponse(data) {
         const me = this;
 
-        me.updateTimeStamp(data);
+        me.cachedData = data;
+
+        me.updateRefreshIntervalText();
+        setInterval(me.updateRefreshIntervalText.bind(me), 1000);
 
         for (let i in Sensors) {
             let sensor = Sensors[i];
@@ -128,6 +138,18 @@ class App {
             element = $(`#${sensor.flowElementId}`);
         }
 
+        if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
+            // If value is negative, convert to positive (e.g. export vs. import, discharge vs. charge)
+            if (value < 0) {
+                value = value * -1;
+            }
+
+            // If power or flow values are less than 10 Watts (less than 0.01 kW), treat as a zero-value
+            if (value < 10) {
+                value = 0;
+            }
+        }
+
         if (sensor.type === SensorType.Flow) {
             group = element;
 
@@ -157,8 +179,8 @@ class App {
             let batteries = value;
             let svgContainerElement = $('#inverter_panel')[0];
             let svgCloneableElement = $('#batteryDetails')[0];
-            let offsetY = 130;
-            let offsetAddition = 85;
+            let offsetY = 102;
+            let offsetAddition = 100;
             let i = 0;
 
             // On first load, render the battery statistics panels
@@ -212,8 +234,8 @@ class App {
         }
 
         if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
-            if (parseFloat(value) < 0.01) {
-                // If value is less than 0.01 kW, mark the line/group as Idle
+            if (value === 0) {
+                // If value is less than 0.01 kW (10 Watts), mark the line/group as Idle
                 if (line) {
                     line.setAttribute("marker-end", "");
                 }
@@ -232,31 +254,56 @@ class App {
         }
     }
 
+    resizeCanvas() {
+        let width = document.body.clientWidth;
+        let height = document.body.clientHeight;
+        let canvas = $('#canvas')[0];
+
+        if (width > height) {
+            // Landscape mode
+            canvas.setAttribute('viewBox', '0 0 840 365');
+            $('#diagram')[0].setAttribute('transform', '');
+            $('#panels')[0].setAttribute('transform', '');
+        } else {
+            // Portrait mode
+            canvas.setAttribute('viewBox', '0 0 500 840');
+            $('#diagram')[0].setAttribute('transform', 'translate(16, 0), scale(1.3)');
+            $('#panels')[0].setAttribute('transform', 'translate(-392, 470), scale(1.07)');
+        }
+    }
+
     /**
-     * Updates the time in the UI to let the user know when the data was last refreshed by GivTCP
+     * Updates the actual time in the UI
      */
-    updateTimeStamp(data) {
-        if (data && data['Last_Updated_Time']) {
-            const clock = $('#clock');
-            const dateUpdated = new Date(data['Last_Updated_Time']);
-            const dateDiff = (new Date() - dateUpdated) / 1000;
+    updateTime() {
+        const clock = $('#clock');
+        const date = new Date();
+        let hours = date.getHours();
+        let minutes = date.getMinutes();
+        let suffix = hours >= 12 ? 'pm' : 'am';
 
-            let hours = dateUpdated.getHours();
-            let minutes = dateUpdated.getMinutes();
-            let suffix = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        minutes = minutes < 10 ? '0' + minutes : minutes;
 
-            hours = hours % 12;
-            hours = hours ? hours : 12;
-            minutes = minutes < 10 ? '0' + minutes : minutes;
+        clock.text(`${hours}:${minutes}${suffix}`);
+    }
 
-            clock.text(`${hours}:${minutes}${suffix}`);
+    /**
+     * Updates the elapsed time in the UI to let the user know when the data was last refreshed by GivTCP
+     */
+    updateRefreshIntervalText() {
+        const me = this;
 
-            // If the inverter data is older than 3 minutes, add a red border to the clock to illustrate a possible issue
-            if (dateDiff > 180) {
-                clock.addClass('overdue');
-            } else {
-                clock.removeClass('overdue');
-            }
+        me.updateTime();
+
+        if (me.cachedData && me.cachedData['Last_Updated_Time']) {
+            const refreshIntervalText = $('#refreshIntervalText');
+            const dateUpdated = new Date(me.cachedData['Last_Updated_Time']);
+            const seconds = Formatters.renderLargeNumber(Math.round((new Date() - dateUpdated) / 1000));
+            const suffix = seconds === 1 ? '': 's';
+
+            refreshIntervalText.text(`Inverter data last updated ${seconds} second${suffix} ago`);
         }
     }
 }
