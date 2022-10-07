@@ -89,14 +89,14 @@ const Sensors = [{
     forceRefresh: true
 }, {
     id: 'daily_energy_peak',
-    mapping: 'Energy.Rates.day_energy',
+    mapping: 'Energy.Rates.Day_Energy_kWh',
     textElementId: 'energy_imported_peak_text',
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true
 }, {
     id: 'daily_energy_offpeak',
-    mapping: 'Energy.Rates.night_energy',
+    mapping: 'Energy.Rates.Night_Energy_kWh',
     textElementId: 'energy_imported_offpeak_text',
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
@@ -120,7 +120,7 @@ const Sensors = [{
     suffix: Suffix.Percent
 }, {
     id: 'daily_energy_cost_peak',
-    mapping: 'Energy.Rates.day_cost',
+    mapping: 'Energy.Rates.Day_Cost',
     textElementId: 'energy_imported_peak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
@@ -128,7 +128,7 @@ const Sensors = [{
     forceRefresh: true
 }, {
     id: 'daily_energy_cost_offpeak',
-    mapping: 'Energy.Rates.night_cost',
+    mapping: 'Energy.Rates.Night_Cost',
     textElementId: 'energy_imported_offpeak_cost_text',
     type: SensorType.Summary,
     prefix: Prefix.Currency,
