@@ -295,7 +295,7 @@ class App {
     updateRefreshIntervalText() {
         const me = this;
 
-        me.updateTime();
+        //me.updateTime();
 
         if (me.cachedData && me.cachedData['Last_Updated_Time']) {
             const refreshIntervalText = $('#refreshIntervalText');
