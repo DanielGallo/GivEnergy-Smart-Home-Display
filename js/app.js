@@ -99,8 +99,12 @@ class App {
                 } else {
                     value = "Idle";
                 }
-            } else if (sensor.id === 'Solar_Income' || sensor.id === 'Export_Income') {
+            } else if (sensor.id === 'Solar_Income') {
                 let income = value * me.solarRate;
+
+                value = Converters.numberToCurrency(income);
+            } else if (sensor.id === 'Export_Income') {
+                let income = value * me.exportRate;
 
                 value = Converters.numberToCurrency(income);
             }
