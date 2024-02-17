@@ -36,6 +36,10 @@ class Formatters {
         return value.toFixed(1);
     }
 
+    static roundToWholeNumber(value) {
+        return value.toFixed(0);
+    }
+
     static renderLargeNumber(value) {
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }

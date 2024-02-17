@@ -16,11 +16,11 @@ text {
 }
 
 text.grouper {
-    font-size: 0px;
+    font-size: 10pt;
 }
 
 text.grouper tspan {
-    font-size: 14pt;
+    font-size: 12pt;
 }
 
 .circle_scale {
@@ -65,7 +65,7 @@ text.overdue {
 }
 
 #inverter_panel tspan {
-    font-size: 12pt;
+    font-size: 10pt;
 }
 
 #inverter_panel text.label {

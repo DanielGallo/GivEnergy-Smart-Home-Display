@@ -16,8 +16,8 @@
     <svg id="canvas" width="100%" height="100%" viewBox="0 0 840 365">
         <g transform="translate(0, 8)">
             <g id="diagram">
-                <g transform="translate(35, 22)">
-                    <text x="-16" y="0" class="clock" id="clock"></text>
+                <g transform="translate(0, 22)">
+                    <text x="0" y="0" class="clock" id="clock"></text>
                 </g>
 
                 <text x="180" y="348" id="refreshIntervalText" text-anchor="middle" class="refreshText"></text>
@@ -187,37 +187,9 @@
 
                 <line x1="600" y1="0" x2="600" y2="330" stroke="#646464" stroke-width="1" />
 
-                <!-- Inverter and Battery Information Panel -->
+                <!-- Inverter and Battery Information Panel - generated dynamically based on the number of inverters and batteries -->
                 <g id="inverter_panel" transform="translate(620, 19)">
-                    <!--<g transform="translate(0, 0)">
-                        <text class="label" x="0" y="0">Grid</text>
 
-                        <text x="0" y="0" class="grouper">
-                            <tspan x="0" dy="1.3em">Voltage</tspan>
-                            <tspan id="grid_voltage" text-anchor="end" x="200" dy="0">0</tspan>
-
-                            <tspan x="0" dy="1.3em">Frequency</tspan>
-                            <tspan id="grid_frequency" text-anchor="end" x="200" dy="0">0</tspan>
-                        </text>
-
-                        <text x="0" y="0">
-                        </text>
-                    </g>-->
-
-                    <g transform="translate(0, 3)">
-                        <text class="label" x="0" y="0">Inverter</text>
-
-                        <text x="0" y="0" class="grouper">
-                            <tspan x="0" dy="1.4em">Power Reserve</tspan>
-                            <tspan id="power_reserve" text-anchor="end" x="200" dy="0">0</tspan>
-
-                            <tspan x="0" dy="1.4em">Target Charge</tspan>
-                            <tspan id="target_soc" text-anchor="end" x="200" dy="0">0</tspan>
-
-                            <tspan x="0" dy="1.4em">Temperature</tspan>
-                            <tspan id="inverter_temperature" text-anchor="end" x="200" dy="0">0</tspan>
-                        </text>
-                    </g>
                 </g>
             </g>
         </g>
@@ -235,18 +207,33 @@
             <path class="connector" d='M 0 0 L 4 5 L 0 10 L 1 10 L 5 5 L 1 0 Z' />
         </marker>
 
-        <g id="batteryDetails" style="display: none;">
-            <text class="label" x="0" y="0">Battery</text>
+        <g id="inverterDetails" style="display: none;">
+            <text class="label" x="0" y="0">Inverter</text>
 
             <text x="0" y="0" class="grouper">
-                <tspan x="0" dy="1.4em">State of Charge</tspan>
-                <tspan text-anchor="end" x="200" dy="0" class="state_of_charge">0</tspan>
+                <tspan x="0" dy="1.4em">Solar Power Now</tspan>
+                <tspan class="solar_power" text-anchor="end" x="200" dy="0">0</tspan>
 
-                <tspan x="0" dy="1.4em">Remaining Energy</tspan>
-                <tspan text-anchor="end" x="200" dy="0" class="remaining_capacity">0</tspan>
+                <tspan x="0" dy="1.4em">Power Reserve</tspan>
+                <tspan class="power_reserve" text-anchor="end" x="200" dy="0">0</tspan>
+
+                <tspan x="0" dy="1.4em">Target Charge</tspan>
+                <tspan class="target_soc" text-anchor="end" x="200" dy="0">0</tspan>
 
                 <tspan x="0" dy="1.4em">Temperature</tspan>
-                <tspan text-anchor="end" x="200" dy="0" class="temperature">0</tspan>
+                <tspan class="inverter_temperature" text-anchor="end" x="200" dy="0">0</tspan>
+
+                <tspan class="label" x="0" dy="1.6em">Batteries</tspan>
+            </text>
+        </g>
+
+        <g id="batteryDetails" style="display: none;">
+            <text x="0" y="0" class="grouper">
+                <tspan x="0" dy="0" class="state_of_charge">0</tspan>
+
+                <tspan x="100" dy="0" text-anchor="middle" class="remaining_capacity">0</tspan>
+
+                <tspan x="196" dy="0" text-anchor="end" class="temperature">0</tspan>
             </text>
         </g>
     </svg>

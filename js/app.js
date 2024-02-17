@@ -1,4 +1,4 @@
-import { SensorType, Suffix } from './enums.js';
+import { CombinatorType, SensorType, Suffix } from './enums.js';
 import { Sensors } from './sensors.js';
 import { Helpers } from './helpers.js';
 import { Formatters } from './formatters.js';
@@ -8,10 +8,10 @@ class App {
     constructor() {
         const me = this;
 
-        me.givTcpHostname = null;
+        me.givTcpHosts = null;
         me.solarRate = null;
         me.exportRate = null;
-        me.cachedData = null;
+        me.processedData = null;
         me.rendered = false;
 
         // Fetch the settings from `app.json`
@@ -20,11 +20,11 @@ class App {
                 return response.json();
             })
             .then(data => {
-                me.givTcpHostname = data.givTcpHostname;
+                me.givTcpHosts = data.givTcpHosts;
                 me.solarRate = data.solarRate;
                 me.exportRate = data.exportRate;
 
-                if (me.givTcpHostname != null && me.solarRate != null && me.exportRate != null) {
+                if (me.givTcpHosts != null && me.solarRate != null && me.exportRate != null) {
                     me.launch();
                 }
             });
@@ -37,7 +37,7 @@ class App {
     }
 
     /**
-     * Fetch the initial set of data and setup a routine to fetch the data every 10 seconds
+     * Fetch the initial set of data and set up a routine to fetch the data every 10 seconds
      */
     launch() {
         const me = this;
@@ -54,43 +54,88 @@ class App {
      */
     fetchData() {
         const me = this;
+        me.cachedData = [];
 
-        fetch(`http://${me.givTcpHostname}/readData`, {
-            mode: 'cors',
-            headers: {
-                'Access-Control-Allow-Origin': '*'
-            }
-        }).then(response => {
-            return response.json();
-        }).then(data => {
-            me.onResponse(data)
+        let fetchPromises = me.givTcpHosts.map((givTcpHost) => {
+            return fetch(`http://${givTcpHost.host}/readData`, {
+                mode: 'cors',
+                headers: {
+                    'Access-Control-Allow-Origin': '*'
+                }
+            }).then(response => {
+                return response.json();
+            }).then(data => {
+                me.cachedData.push({
+                    name: givTcpHost.name,
+                    data: data
+                });
+            });
+        });
+
+        Promise.all(fetchPromises).then(() => {
+            me.cachedData.sort((a, b) => {
+                if (a.name < b.name) return -1;
+                if (a.name > b.name) return 1;
+                return 0;
+            });
+
+            me.onResponse();
         });
     }
 
     /**
      * Successful response from GivTCP
-     * @param data
      */
-    onResponse(data) {
+    onResponse() {
         const me = this;
-
-        me.cachedData = data;
 
         me.updateRefreshIntervalText();
         setInterval(me.updateRefreshIntervalText.bind(me), 1000);
 
-        for (let i in Sensors) {
-            let sensor = Sensors[i];
+        me.processedData = {};
+
+        Sensors.forEach((sensor) => {
             let value = null;
 
-            if (sensor.mapping) {
-                value = Helpers.getPropertyValueFromMapping(data, sensor.mapping);
+            if (sensor.combinator === CombinatorType.Addition) {
+                value = 0;
+
+                me.cachedData.forEach((cachedRecord) => {
+                    value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                });
+            } else if (sensor.combinator === CombinatorType.Any) {
+                value = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, sensor.mapping);
+            } else if (sensor.combinator === CombinatorType.Average) {
+                let numbers = [];
+
+                me.cachedData.forEach((cachedRecord) => {
+                    numbers.push(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping));
+                });
+
+                let sum = numbers.reduce((a, b) => a + b, 0);
+                value = sum / numbers.length;
+            } else if (sensor.combinator === CombinatorType.EarliestDate) {
+                let dates = [];
+
+                me.cachedData.forEach((cachedRecord) => {
+                    dates.push(new Date(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping)));
+                });
+
+                value = new Date(Math.min.apply(null, dates));
             }
+
+            me.processedData[sensor.id] = value;
+        });
+
+        const data = me.processedData;
+
+        Sensors.forEach((sensor) => {
+            let value = me.processedData[sensor.id];
 
             // Some sensors require calculation of the values
             if (sensor.id === 'Battery_State') {
-                let chargeRate = data.Power.Power.Charge_Power;
-                let dischargeRate = data.Power.Power.Discharge_Power;
+                let chargeRate = data.Charge_Power;
+                let dischargeRate = data.Discharge_Power;
 
                 if (dischargeRate > 0) {
                     value = "Discharging";
@@ -107,6 +152,25 @@ class App {
                 let income = value * me.exportRate;
 
                 value = Converters.numberToCurrency(income);
+            } else if (sensor.id === 'Inverter_Details') {
+                let inverters = [];
+
+                me.cachedData.forEach((cachedRecord) => {
+                    let inverterBatteries = Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Battery_Details');
+
+                    let batteryArray = Object.keys(inverterBatteries).map(function(key) {
+                        return inverterBatteries[key];
+                    });
+
+                    inverters.push({
+                        name: cachedRecord.name,
+                        data: data,
+                        rawData: cachedRecord.data,
+                        batteries: batteryArray
+                    });
+                });
+
+                value = inverters;
             }
 
             // Process the sensor if there's a value and it's non-zero,
@@ -117,7 +181,7 @@ class App {
                     value: value
                 });
             }
-        }
+        });
     }
 
     /**
@@ -179,65 +243,113 @@ class App {
             if (group.children('line').length > 0) {
                 line = group.children('line')[0];
             }
-        } else if (sensor.type === SensorType.Summary && sensor.id === 'Battery_Statistics') {
-            let batteries = value;
+        } else if (sensor.type === SensorType.Summary && sensor.id === 'Inverter_Details') {
+            let inverters = value;
             let svgContainerElement = $('#inverter_panel')[0];
-            let svgCloneableElement = $('#batteryDetails')[0];
-            let offsetY = 102;
-            let offsetAddition = 100;
-            let i = 0;
+            let svgCloneableInverterElement = $('#inverterDetails')[0];
+            let svgCloneableBatteryElement = $('#batteryDetails')[0];
+            let offsetY = 3;
+            let inverterOffsetAddition = 114;
+            let batteryOffsetAddition = 18;
+            let spacer = 14;
+            let inverterIndex = -1;
 
             // On first load, render the battery statistics panels
             if (!me.rendered) {
-                // The number of batteries can vary, so iterate over each battery
-                for (let battery in batteries) {
-                    let svgClonedElement = svgCloneableElement.cloneNode(true);
+                inverters.forEach(inverter => {
+                    let batteryIndex = -1;
+                    let svgClonedElement = svgCloneableInverterElement.cloneNode(true);
                     svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
                     svgClonedElement.setAttribute('style', '');
-                    svgClonedElement.setAttribute('id', `battery_${battery}`);
+                    svgClonedElement.setAttribute('id', `inverter_${++ inverterIndex}`);
 
                     svgContainerElement.appendChild(svgClonedElement);
 
-                    let batteryNameEl = $(`#battery_${battery} > text.label`);
-                    batteryNameEl.text(`Battery ${++i}`);
+                    let inverterNameEl = $(`#inverter_${inverterIndex} > text.label`);
+                    inverterNameEl.text(`Inverter (${inverter.name})`);
 
-                    offsetY = offsetY + offsetAddition;
-                }
+                    offsetY = offsetY + inverterOffsetAddition;
+
+                    // The number of batteries can vary, so iterate over each battery
+                    for (let battery in inverter.batteries) {
+                        let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
+                        svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
+                        svgClonedElement.setAttribute('style', '');
+                        svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${++ batteryIndex}`);
+
+                        svgContainerElement.appendChild(svgClonedElement);
+
+                        offsetY = offsetY + batteryOffsetAddition;
+                    }
+
+                    offsetY = offsetY + spacer;
+                })
 
                 me.rendered = true;
             }
 
-            // Now populate or update the values being shown in the battery statistics panels
-            for (let battery in batteries) {
-                let batteryData = batteries[battery];
+            inverterIndex = -1;
 
-                // Calculate the remaining capacity (in kWh) of the battery
-                let remainingAh = batteryData['Battery_Remaining_Capacity'];
-                let batteryVoltage = batteryData['Battery_Voltage'];
-                let remainingKWh = (remainingAh * batteryVoltage) / 1000;
+            // Now populate or update the values being shown in the inverter and battery statistics panels
+            inverters.forEach(inverter => {
+                inverterIndex ++;
+                let batteries = inverter.batteries;
+                let batteryIndex = -1;
 
-                let stateOfChargeEl = $(`#battery_${battery} >> tspan.state_of_charge`);
-                stateOfChargeEl.text(Formatters.sensorValue(batteryData['Battery_SOC'], {
+                let solarPowerEl = $(`#inverter_${inverterIndex} >> tspan.solar_power`);
+                solarPowerEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.PV_Power'), {
+                    converter: Converters.wattsToKw,
+                    suffix: Suffix.Power
+                }));
+
+                let powerReserveEl = $(`#inverter_${inverterIndex} >> tspan.power_reserve`);
+                powerReserveEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Control.Battery_Power_Reserve'), {
                     suffix: Suffix.Percent
                 }));
 
-                let remainingCapacityEl = $(`#battery_${battery} >> tspan.remaining_capacity`);
-                remainingCapacityEl.text(Formatters.sensorValue(remainingKWh, {
-                    suffix: Suffix.Energy,
-                    formatter: Formatters.roundToOneDecimalPlace
+                let targetChargeEl = $(`#inverter_${inverterIndex} >> tspan.target_soc`);
+                targetChargeEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Control.Target_SOC'), {
+                    suffix: Suffix.Percent
                 }));
 
-                let temperatureEl = $(`#battery_${battery} >> tspan.temperature`);
-                temperatureEl.text(Formatters.sensorValue(batteryData['Battery_Temperature'], {
+                let temperatureEl = $(`#inverter_${inverterIndex} >> tspan.inverter_temperature`);
+                temperatureEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Invertor_Details.Invertor_Temperature'), {
                     suffix: Suffix.Temperature,
-                    formatter: Formatters.roundToOneDecimalPlace
+                    formatter: Formatters.roundToWholeNumber
                 }));
-            }
+
+                batteries.forEach(battery => {
+                    batteryIndex ++;
+
+                    // Calculate the remaining capacity (in kWh) of the battery
+                    let remainingAh = battery['Battery_Remaining_Capacity'];
+                    let batteryVoltage = battery['Battery_Voltage'];
+                    let remainingKWh = (remainingAh * batteryVoltage) / 1000;
+
+                    let stateOfChargeEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.state_of_charge`);
+                    stateOfChargeEl.text(Formatters.sensorValue(battery['Battery_SOC'], {
+                        suffix: Suffix.Percent
+                    }));
+
+                    let remainingCapacityEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.remaining_capacity`);
+                    remainingCapacityEl.text(Formatters.sensorValue(remainingKWh, {
+                        suffix: Suffix.Energy,
+                        formatter: Formatters.roundToOneDecimalPlace
+                    }));
+
+                    let temperatureEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.temperature`);
+                    temperatureEl.text(Formatters.sensorValue(battery['Battery_Temperature'], {
+                        suffix: Suffix.Temperature,
+                        formatter: Formatters.roundToWholeNumber
+                    }));
+                });
+            });
         } else if (sensor.type === SensorType.Summary) {
             element.text(Formatters.sensorValue(value, sensor));
         }
 
         if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
+            console.log(sensor.id, value);
             if (value === 0) {
                 // If value is less than 0.01 kW (10 Watts), mark the line/group as Idle
                 if (line) {
@@ -250,6 +362,10 @@ class App {
                 // Active
                 if (line) {
                     line.setAttribute("marker-end", `url(#${arrow})`);
+
+                    // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
+                    let newLine = line.cloneNode(true);
+                    line.parentNode.replaceChild(newLine, line);
                 }
 
                 group.removeClass('idle');
@@ -301,9 +417,9 @@ class App {
 
         //me.updateTime();
 
-        if (me.cachedData && me.cachedData['Last_Updated_Time']) {
+        if (me.processedData && me.processedData['Last_Updated_Time']) {
             const refreshIntervalText = $('#refreshIntervalText');
-            const dateUpdated = new Date(me.cachedData['Last_Updated_Time']);
+            const dateUpdated = new Date(me.processedData['Last_Updated_Time']);
             const seconds = Math.round((new Date() - dateUpdated) / 1000);
             const secondsText = Formatters.renderLargeNumber(seconds < 0 ? 0 : seconds);
             const suffix = seconds === 1 ? '': 's';

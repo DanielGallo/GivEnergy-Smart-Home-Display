@@ -17,4 +17,14 @@ const Suffix = {
     Voltage: ' V'
 };
 
-export { SensorType, Prefix, Suffix };
+const CombinatorType = {
+    All: 'All',
+    Any: 'Any',
+    Addition: 'Addition',
+    Average: 'Average',
+    EarliestDate: 'EarliestDate',
+    Separate: 'Separate',
+    Ignore: 'Ignore'
+}
+
+export { SensorType, Prefix, Suffix, CombinatorType };
