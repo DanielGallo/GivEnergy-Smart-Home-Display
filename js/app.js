@@ -56,8 +56,20 @@ class App {
         const me = this;
         me.cachedData = [];
 
+        // Generate URL to GivTCP based on current URL of web app
+        let baseUrl = window.location.protocol + "//" + window.location.hostname;
+
+        // But also allow the GivTCP hostname to be passed in as a "hostname" query string param
+        const urlParams = new URLSearchParams(window.location.search);
+        const hostname = urlParams.get('hostname');
+
+        // If the hostname has been overridden, use it
+        if (hostname) {
+            baseUrl = window.location.protocol + "//" + hostname;
+        }
+
         let fetchPromises = me.givTcpHosts.map((givTcpHost) => {
-            return fetch(`http://${givTcpHost.host}/readData`, {
+            return fetch(`${baseUrl}:${givTcpHost.port}/readData`, {
                 mode: 'cors',
                 headers: {
                     'Access-Control-Allow-Origin': '*'
@@ -349,7 +361,6 @@ class App {
         }
 
         if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
-            console.log(sensor.id, value);
             if (value === 0) {
                 // If value is less than 0.01 kW (10 Watts), mark the line/group as Idle
                 if (line) {

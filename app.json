@@ -1,14 +1,11 @@
 {
-  "givTcpHosts": [
-  {
+  "givTcpHosts": [{
     "name": "House",
-    "host": "10.0.0.210:6345"
-  }
-  ,{
+    "port": "6345"
+  }, {
     "name": "Garage",
-    "host": "10.0.0.210:6346"
-  }
-  ],
+    "port": "6346"
+  }],
   "solarRate": 0.306,
   "exportRate": 0.15
 }
