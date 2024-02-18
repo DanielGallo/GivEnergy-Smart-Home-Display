@@ -5,8 +5,8 @@ html, body {
 }
 
 body {
-    background-color: black;
-    font-family: Tahoma, Arial;
+    background-color: #1c1c1c;
+    font-family: Roboto, Noto, sans-serif;
     font-size: 14pt;
     color: #ffffff;
 }
@@ -21,6 +21,10 @@ text.grouper {
 
 text.grouper tspan {
     font-size: 12pt;
+}
+
+.circle {
+    fill: #1c1c1c;
 }
 
 .circle_scale {
@@ -73,7 +77,8 @@ text.overdue {
 }
 
 tspan.label, text.label {
-    font-weight: bold;
+    fill: rgb(155, 155, 155);
+    font-weight: bolder;
     font-size: 100%;
 }
 
@@ -94,7 +99,10 @@ tspan.label, text.label {
 }
 
 .graphic {
-    stroke-width: 1;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    fill: #1c1c1c;
 }
 
 .active circle#power_grid_circle, #power_grid.active path.graphic, #summary_panel path.graphic-grid {

@@ -20,7 +20,7 @@ const Sensors = [{
     type: SensorType.Power,
     textElementId: 'power_home_text',
     converter: Converters.wattsToKw,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Ignore
 }, {
     id: 'Grid_Power',
     mapping: 'Power.Power.Grid_Power',
@@ -28,7 +28,7 @@ const Sensors = [{
     textElementId: 'power_grid_text',
     converter: Converters.wattsToKw,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Any
 }, {
     id: 'PV_Power',
     mapping: 'Power.Power.PV_Power',

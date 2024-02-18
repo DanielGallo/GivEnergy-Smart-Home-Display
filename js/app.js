@@ -15,7 +15,7 @@ class App {
         me.rendered = false;
 
         // Fetch the settings from `app.json`
-        fetch("./app.json")
+        fetch('./app.json')
             .then(response => {
                 return response.json();
             })
@@ -25,6 +25,10 @@ class App {
                 me.exportRate = data.exportRate;
 
                 if (me.givTcpHosts != null && me.solarRate != null && me.exportRate != null) {
+                    me.givTcpHosts.forEach((givTcpHost, index) => {
+                        givTcpHost.sortOrder = index;
+                    });
+
                     me.launch();
                 }
             });
@@ -57,7 +61,7 @@ class App {
         me.cachedData = [];
 
         // Generate URL to GivTCP based on current URL of web app
-        let baseUrl = window.location.protocol + "//" + window.location.hostname;
+        let baseUrl = window.location.protocol + '//' + window.location.hostname;
 
         // But also allow the GivTCP hostname to be passed in as a "hostname" query string param
         const urlParams = new URLSearchParams(window.location.search);
@@ -65,7 +69,7 @@ class App {
 
         // If the hostname has been overridden, use it
         if (hostname) {
-            baseUrl = window.location.protocol + "//" + hostname;
+            baseUrl = window.location.protocol + '//' + hostname;
         }
 
         let fetchPromises = me.givTcpHosts.map((givTcpHost) => {
@@ -79,17 +83,14 @@ class App {
             }).then(data => {
                 me.cachedData.push({
                     name: givTcpHost.name,
+                    sortOrder: givTcpHost.sortOrder,
                     data: data
                 });
             });
         });
 
         Promise.all(fetchPromises).then(() => {
-            me.cachedData.sort((a, b) => {
-                if (a.name < b.name) return -1;
-                if (a.name > b.name) return 1;
-                return 0;
-            });
+            me.cachedData.sort((a, b) => a.sortOrder - b.sortOrder);
 
             me.onResponse();
         });
@@ -150,12 +151,16 @@ class App {
                 let dischargeRate = data.Discharge_Power;
 
                 if (dischargeRate > 0) {
-                    value = "Discharging";
+                    value = 'Discharging';
                 } else if (chargeRate > 0) {
-                    value = "Charging";
+                    value = 'Charging';
                 } else {
-                    value = "Idle";
+                    value = 'Idle';
                 }
+            } else if (sensor.id === 'Load_Power') {
+                let loadPower = data.Discharge_Power + data.PV_Power + data.Grid_Power + data.Charge_Power;
+
+                value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
                 let income = value * me.solarRate;
 
@@ -261,9 +266,9 @@ class App {
             let svgCloneableInverterElement = $('#inverterDetails')[0];
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
             let offsetY = 3;
-            let inverterOffsetAddition = 114;
+            let inverterOffsetAddition = 112;
             let batteryOffsetAddition = 18;
-            let spacer = 14;
+            let spacer = 16;
             let inverterIndex = -1;
 
             // On first load, render the battery statistics panels
@@ -328,7 +333,36 @@ class App {
                 temperatureEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Invertor_Details.Invertor_Temperature'), {
                     suffix: Suffix.Temperature,
                     formatter: Formatters.roundToWholeNumber
-                }));
+                }))
+
+                let inverterStatusText = '';
+                let inverterStatusValue = '';
+                let inverterRate = null;
+                let chargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Charge_Power');
+                let dischargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Discharge_Power');
+
+                if (dischargeRate > 0) {
+                    inverterStatusText = 'Batteries Discharging';
+                    inverterRate = dischargeRate;
+                } else if (chargeRate > 0) {
+                    inverterStatusText = 'Batteries Charging';
+                    inverterRate = chargeRate;
+                } else {
+                    inverterStatusText = 'Batteries Idle';
+                }
+
+                if (inverterRate != null) {
+                    inverterStatusValue = Formatters.sensorValue(inverterRate, {
+                        converter: Converters.wattsToKw,
+                        suffix: Suffix.Power
+                    });
+                }
+
+                let inverterStatusTextEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status_text`);
+                inverterStatusTextEl.text(inverterStatusText);
+
+                let inverterStatusValueEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status_value`);
+                inverterStatusValueEl.text(inverterStatusValue);
 
                 batteries.forEach(battery => {
                     batteryIndex ++;
@@ -364,7 +398,7 @@ class App {
             if (value === 0) {
                 // If value is less than 0.01 kW (10 Watts), mark the line/group as Idle
                 if (line) {
-                    line.setAttribute("marker-end", "");
+                    line.setAttribute('marker-end', '');
                 }
 
                 group.removeClass('active');
@@ -372,7 +406,7 @@ class App {
             } else {
                 // Active
                 if (line) {
-                    line.setAttribute("marker-end", `url(#${arrow})`);
+                    line.setAttribute('marker-end', `url(#${arrow})`);
 
                     // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
                     let newLine = line.cloneNode(true);
