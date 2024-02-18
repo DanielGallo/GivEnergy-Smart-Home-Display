@@ -102,7 +102,7 @@ const Sensors = [{
     suffix: Suffix.Energy,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average      // All inverters might know about the total load?
 }, {
     id: 'PV_Energy_Today_kWh',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
@@ -135,7 +135,7 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average  // Each inverter appears to know the same total export amount, but they're off by a very small amount.
 }, {
     id: 'Battery_State',
     textElementId: 'battery_state_text',
@@ -147,6 +147,7 @@ const Sensors = [{
     textElementId: 'battery_percentage_text',
     type: SensorType.Summary,
     suffix: Suffix.Percent,
+    formatter: Formatters.roundToOneDecimalPlace,
     combinator: CombinatorType.Average
 }, {
     id: 'daily_energy_cost_peak',
@@ -174,7 +175,7 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average  // Uses the same field above that's averaged across inverters.
 }, {
     id: 'Solar_Income',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',

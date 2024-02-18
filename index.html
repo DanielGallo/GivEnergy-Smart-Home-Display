@@ -5,6 +5,7 @@
     <title>GivEnergy Dash</title>
 
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <link rel="apple-touch-icon" href="images/Logo.png">
 
@@ -221,28 +222,31 @@
             <text class="label" x="0" y="0">Inverter</text>
 
             <text x="0" y="0" class="grouper">
-                <tspan x="0" dy="1.4em">Solar Power Now</tspan>
+                <tspan class="inverter_soc" text-anchor="end" x="200" dy="0">0</tspan>
+
+                <tspan class="label" x="0" dy="1.4em">Solar Power Now</tspan>
                 <tspan class="solar_power" text-anchor="end" x="200" dy="0">0</tspan>
 
-                <tspan x="0" dy="1.4em">Power Reserve</tspan>
+                <tspan class="label" x="0" dy="1.4em">Power Reserve</tspan>
                 <tspan class="power_reserve" text-anchor="end" x="200" dy="0">0</tspan>
 
-                <tspan x="0" dy="1.4em">Target Charge</tspan>
+                <tspan class="label" x="0" dy="1.4em">Target Charge</tspan>
                 <tspan class="target_soc" text-anchor="end" x="200" dy="0">0</tspan>
 
-                <tspan x="0" dy="1.4em">Temperature</tspan>
-                <tspan class="inverter_temperature" text-anchor="end" x="200" dy="0">0</tspan>
-
-                <tspan class="label inverter_status_text" x="0" dy="1.4em"></tspan>
-                <tspan class="label inverter_status_value" text-anchor="end" x="197" dy="0">0</tspan>
+                <tspan class="label" x="0" dy="1.4em">Batteries</tspan>
+                <tspan class="inverter_status" text-anchor="end" x="197" dy="0">0</tspan>
             </text>
         </g>
 
         <g id="batteryDetails" style="display: none;">
-            <text x="0" y="0" class="grouper">
+            <g transform="translate(37, 5), rotate(180), scale(0.6)">
+                <path style="stroke: #3949ab; stroke-width: 1px;" class="graphic" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9 L 25 9 L 25 22 L 20 22 L 20 9 M 28 9 L 33 9 L 33 22 L 28 22 L 28 9 M 36 9 L 41 9 L 41 22 L 36 22 L 36 9 M 44 9 L 49 9 L 49 22 L 44 22 L 44 9 M 52 9 L 57 9 L 57 22 L 52 22 L 52 9" />
+            </g>
+
+            <text dx="36" y="0" class="grouper">
                 <tspan x="0" dy="0" class="state_of_charge">0</tspan>
 
-                <tspan x="100" dy="0" text-anchor="middle" class="remaining_capacity">0</tspan>
+                <tspan x="118" dy="0" text-anchor="middle" class="remaining_capacity">0</tspan>
 
                 <tspan x="196" dy="0" text-anchor="end" class="temperature">0</tspan>
             </text>

@@ -77,8 +77,8 @@ text.overdue {
 }
 
 tspan.label, text.label {
-    fill: rgb(155, 155, 155);
-    font-weight: bolder;
+    fill: rgb(163, 163, 163);
+    font-weight: normal;
     font-size: 100%;
 }
 

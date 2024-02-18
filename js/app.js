@@ -158,7 +158,7 @@ class App {
                     value = 'Idle';
                 }
             } else if (sensor.id === 'Load_Power') {
-                let loadPower = data.Discharge_Power + data.PV_Power + data.Grid_Power + data.Charge_Power;
+                let loadPower = data.Battery_to_House + data.Solar_to_House + data.Grid_to_House;
 
                 value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
@@ -266,7 +266,7 @@ class App {
             let svgCloneableInverterElement = $('#inverterDetails')[0];
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
             let offsetY = 3;
-            let inverterOffsetAddition = 112;
+            let inverterOffsetAddition = 93;
             let batteryOffsetAddition = 18;
             let spacer = 16;
             let inverterIndex = -1;
@@ -313,6 +313,12 @@ class App {
                 let batteries = inverter.batteries;
                 let batteryIndex = -1;
 
+                let stateOfChargeEl = $(`#inverter_${inverterIndex} >> tspan.inverter_soc`);
+                stateOfChargeEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.SOC'), {
+                    suffix: Suffix.Percent,
+                    formatter: Formatters.roundToWholeNumber
+                }));
+
                 let solarPowerEl = $(`#inverter_${inverterIndex} >> tspan.solar_power`);
                 solarPowerEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.PV_Power'), {
                     converter: Converters.wattsToKw,
@@ -329,40 +335,28 @@ class App {
                     suffix: Suffix.Percent
                 }));
 
-                let temperatureEl = $(`#inverter_${inverterIndex} >> tspan.inverter_temperature`);
-                temperatureEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Invertor_Details.Invertor_Temperature'), {
-                    suffix: Suffix.Temperature,
-                    formatter: Formatters.roundToWholeNumber
-                }))
-
-                let inverterStatusText = '';
-                let inverterStatusValue = '';
+                let inverterStatus = 'Idle';
                 let inverterRate = null;
                 let chargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Charge_Power');
                 let dischargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Discharge_Power');
 
                 if (dischargeRate > 0) {
-                    inverterStatusText = 'Batteries Discharging';
+                    inverterStatus = 'Discharging';
                     inverterRate = dischargeRate;
                 } else if (chargeRate > 0) {
-                    inverterStatusText = 'Batteries Charging';
+                    inverterStatus = 'Charging';
                     inverterRate = chargeRate;
-                } else {
-                    inverterStatusText = 'Batteries Idle';
                 }
 
                 if (inverterRate != null) {
-                    inverterStatusValue = Formatters.sensorValue(inverterRate, {
+                    inverterStatus += ' at ' + Formatters.sensorValue(inverterRate, {
                         converter: Converters.wattsToKw,
                         suffix: Suffix.Power
                     });
                 }
 
-                let inverterStatusTextEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status_text`);
-                inverterStatusTextEl.text(inverterStatusText);
-
-                let inverterStatusValueEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status_value`);
-                inverterStatusValueEl.text(inverterStatusValue);
+                let inverterStatusEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status`);
+                inverterStatusEl.text(inverterStatus);
 
                 batteries.forEach(battery => {
                     batteryIndex ++;
