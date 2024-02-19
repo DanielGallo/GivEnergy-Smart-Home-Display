@@ -254,14 +254,24 @@ class App {
                 me.processedData[sensor.id] = 0;
             }
 
-            // Sometimes the flow lines may have values, but the power sources may be zero.
-            // If the dependent sensor is zero, also set this sensor value to zero (to prevent the flow lines from rendering).
+            // Sometimes the flow lines or power sources may have values, but the dependent sensors may all be zero.
+            // If the dependent sensors are all zero, also set this sensor value to zero (to prevent the flow lines from
+            // rendering, or the values from populating within the circles).
             if (sensor.nonZeroValueCheck && value > 0) {
-                if (me.debugMode) {
-                    console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensor.nonZeroValueCheck}" with value ${me.processedData[sensor.nonZeroValueCheck]}.`);
-                }
+                let setSensorToZero = true;
 
-                if (me.processedData[sensor.nonZeroValueCheck] === 0) {
+                sensor.nonZeroValueCheck.every(sensorToCheck => {
+                    if (me.debugMode) {
+                        console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensorToCheck}" with value ${me.processedData[sensorToCheck]}.`);
+                    }
+
+                    // At least one of the dependent sensors has a non-zero value, so don't reset the source sensor to zero.
+                    if (me.processedData[sensorToCheck] !== 0) {
+                        setSensorToZero = false;
+                    }
+                });
+
+                if (setSensorToZero) {
                     if (me.debugMode) {
                         console.log(`Setting "${sensor.id}" to 0 (was ${value}), because the dependent sensor is also zero.`);
                     }
@@ -302,9 +312,12 @@ class App {
             let svgContainerElement = $('#inverter_panel')[0];
             let svgCloneableInverterElement = $('#inverterDetails')[0];
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
+            let offsetX = 0;
             let offsetY = 3;
-            let inverterOffsetAddition = 113;
-            let batteryOffsetAddition = 20;
+            let inverterOffsetAddition = 114;
+            let batteryOffsetX = 55;
+            let batteryOffsetYAddition = 36;
+            let batteryPanelStartingPositionX = 152;
             let spacer = 14;
             let inverterIndex = -1;
 
@@ -322,21 +335,26 @@ class App {
                     let inverterNameEl = $(`#inverter_${inverterIndex} > text.label`);
                     inverterNameEl.text(`Inverter (${inverter.name})`);
 
+                    offsetX = batteryPanelStartingPositionX;
                     offsetY = offsetY + inverterOffsetAddition;
 
+                    // Reverse the batteries, so we draw the last battery to the right side first
+                    let batteries = inverter.batteries.reverse();
+
                     // The number of batteries can vary, so iterate over each battery
-                    for (let battery in inverter.batteries) {
+                    for (let battery in batteries) {
                         let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
-                        svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
+                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
                         svgClonedElement.setAttribute('style', '');
                         svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${++ batteryIndex}`);
 
                         svgContainerElement.appendChild(svgClonedElement);
 
-                        offsetY = offsetY + batteryOffsetAddition;
+                        offsetX = offsetX - batteryOffsetX;
                     }
 
-                    offsetY = offsetY + spacer;
+                    offsetX = 0;
+                    offsetY = offsetY + batteryOffsetYAddition + spacer;
                 })
 
                 me.rendered = true;
@@ -367,7 +385,7 @@ class App {
                     suffix: Suffix.Percent
                 }));
 
-                let inverterStatus = 'Idle';
+                let inverterStatus = 'Batteries idle';
                 let inverterRate = null;
                 let chargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Charge_Power');
                 let dischargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Discharge_Power');
@@ -381,7 +399,7 @@ class App {
                 }
 
                 if (inverterRate != null) {
-                    inverterStatus += ' at ' + Formatters.sensorValue(inverterRate, {
+                    inverterStatus += ' ' + Formatters.sensorValue(inverterRate, {
                         converter: Converters.wattsToKw,
                         suffix: Suffix.Power
                     });

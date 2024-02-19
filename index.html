@@ -241,21 +241,22 @@
                 <tspan class="target_soc" text-anchor="end" x="200" dy="0">0</tspan>
 
                 <tspan class="label" x="0" dy="1.4em">Batteries</tspan>
+                <tspan class="inverter_soc" text-anchor="end" x="200" dy="0">0</tspan>
 
-                <tspan class="inverter_soc" x="0" dy="1.4em">0</tspan>
-                <tspan class="inverter_status" text-anchor="end" x="195" dy="0">0</tspan>
+                <tspan class="label" x="0" dy="1.4em">Status</tspan>
+                <tspan class="inverter_status" text-anchor="end" x="195">0</tspan>
             </text>
         </g>
 
         <g id="batteryDetails" style="display: none;">
-            <g transform="translate(37, 4), rotate(180), scale(0.6)">
-                <path style="stroke: #3949ab; stroke-width: 2px;" class="graphic" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9 L 25 9 L 25 22 L 20 22 L 20 9 M 28 9 L 33 9 L 33 22 L 28 22 L 28 9 M 36 9 L 41 9 L 41 22 L 36 22 L 36 9 M 44 9 L 49 9 L 49 22 L 44 22 L 44 9 M 52 9 L 57 9 L 57 22 L 52 22 L 52 9" />
+            <g transform="translate(50, 8), rotate(180), scale(0.8)">
+                <path style="stroke: rgb(163, 163, 163); stroke-width: 2px;" class="graphic" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9" />
             </g>
 
-            <text dx="36" y="0" class="grouper">
-                <tspan x="0" dy="0" class="state_of_charge">0</tspan>
+            <text dx="0" y="0" class="grouper">
+                <tspan x="22" dy="0" text-anchor="middle" class="state_of_charge" style="font-size: 9pt;">0</tspan>
 
-                <tspan x="118" dy="0" text-anchor="middle" class="remaining_capacity">0</tspan>
+                <tspan x="22" dy="20" text-anchor="middle" class="remaining_capacity" style="font-size: 9pt;">0</tspan>
             </text>
         </g>
     </svg>

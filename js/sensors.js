@@ -25,6 +25,11 @@ const Sensors = [{
     id: 'Grid_Power',
     mapping: 'Power.Power.Grid_Power',
     type: SensorType.Power,
+    nonZeroValueCheck: [
+        'Grid_to_Battery',
+        'Grid_to_House',
+        'Battery_to_Grid'
+    ],
     textElementId: 'power_grid_text',
     converter: Converters.wattsToKw,
     forceRefresh: true,
@@ -49,6 +54,9 @@ const Sensors = [{
     id: 'Grid_to_Battery',
     mapping: 'Power.Flows.Grid_to_Battery',
     type: SensorType.Flow,
+    nonZeroValueCheck: [
+        'Grid_Power'
+    ],
     flowElementId: 'battery_with_grid',
     forceRefresh: true,
     combinator: CombinatorType.Addition
@@ -56,7 +64,9 @@ const Sensors = [{
     id: 'Grid_to_House',
     mapping: 'Power.Flows.Grid_to_House',
     type: SensorType.Flow,
-    nonZeroValueCheck: 'Grid_Power',
+    nonZeroValueCheck: [
+        'Grid_Power'
+    ],
     flowElementId: 'grid_to_home',
     forceRefresh: true,
     combinator: CombinatorType.Any
@@ -85,7 +95,9 @@ const Sensors = [{
     id: 'Battery_to_Grid',
     mapping: 'Power.Flows.Battery_to_Grid',
     type: SensorType.Flow,
-    nonZeroValueCheck: 'Grid_Power',
+    nonZeroValueCheck: [
+        'Grid_Power'
+    ],
     flowElementId: 'battery_with_grid',
     combinator: CombinatorType.Addition
 }, {
@@ -157,7 +169,7 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average
 }, {
     id: 'daily_energy_cost_offpeak',
     mapping: 'Energy.Rates.Night_Cost',
@@ -166,7 +178,7 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average
 }, {
     id: 'Export_Income',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
@@ -184,7 +196,7 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Addition // Assumes each inverter has its own solar array
 }, {
     id: 'Battery_Statistics',
     mapping: 'Battery_Details',
