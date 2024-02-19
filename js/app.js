@@ -324,7 +324,6 @@ class App {
             // On first load, render the battery statistics panels
             if (!me.rendered) {
                 inverters.forEach(inverter => {
-                    let batteryIndex = -1;
                     let svgClonedElement = svgCloneableInverterElement.cloneNode(true);
                     svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
                     svgClonedElement.setAttribute('style', '');
@@ -340,18 +339,22 @@ class App {
 
                     // Reverse the batteries, so we draw the last battery to the right side first
                     let batteries = inverter.batteries.reverse();
+                    let batteryIndex = batteries.length;
 
                     // The number of batteries can vary, so iterate over each battery
                     for (let battery in batteries) {
                         let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
                         svgClonedElement.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
                         svgClonedElement.setAttribute('style', '');
-                        svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${++ batteryIndex}`);
+                        svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${-- batteryIndex}`);
 
                         svgContainerElement.appendChild(svgClonedElement);
 
                         offsetX = offsetX - batteryOffsetX;
                     }
+
+                    // Reset reverse order
+                    inverter.batteries.reverse();
 
                     offsetX = 0;
                     offsetY = offsetY + batteryOffsetYAddition + spacer;
