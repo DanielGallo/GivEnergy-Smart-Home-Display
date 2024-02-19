@@ -13,6 +13,30 @@ class App {
         me.exportRate = null;
         me.processedData = null;
         me.rendered = false;
+        me.debugMode = false;
+        me.baseUrl = null;
+
+        // Generate URL to GivTCP based on current URL of web app
+        let baseUrl = window.location.protocol + '//' + window.location.hostname;
+
+        // But also allow the GivTCP hostname to be passed in as a "hostname" query string param
+        const urlParams = new URLSearchParams(window.location.search);
+        const hostname = urlParams.get('hostname');
+        const debug = urlParams.get('debug');
+
+        // If the hostname has been overridden, use it
+        if (hostname) {
+            baseUrl = window.location.protocol + '//' + hostname;
+        }
+
+        me.baseUrl = baseUrl;
+
+        // If debug mode is enabled
+        if (debug) {
+            me.debugMode = true;
+            $('#debugPanel').show();
+            console.log('Debug mode enabled.');
+        }
 
         // Fetch the settings from `app.json`
         fetch('./app.json')
@@ -60,20 +84,8 @@ class App {
         const me = this;
         me.cachedData = [];
 
-        // Generate URL to GivTCP based on current URL of web app
-        let baseUrl = window.location.protocol + '//' + window.location.hostname;
-
-        // But also allow the GivTCP hostname to be passed in as a "hostname" query string param
-        const urlParams = new URLSearchParams(window.location.search);
-        const hostname = urlParams.get('hostname');
-
-        // If the hostname has been overridden, use it
-        if (hostname) {
-            baseUrl = window.location.protocol + '//' + hostname;
-        }
-
         let fetchPromises = me.givTcpHosts.map((givTcpHost) => {
-            return fetch(`${baseUrl}:${givTcpHost.port}/readData`, {
+            return fetch(`${me.baseUrl}:${givTcpHost.port}/readData`, {
                 mode: 'cors',
                 headers: {
                     'Access-Control-Allow-Origin': '*'
@@ -145,7 +157,7 @@ class App {
         Sensors.forEach((sensor) => {
             let value = me.processedData[sensor.id];
 
-            // Some sensors require calculation of the values
+            // Some sensors require custom calculation of the values
             if (sensor.id === 'Battery_State') {
                 let chargeRate = data.Charge_Power;
                 let dischargeRate = data.Discharge_Power;
@@ -158,7 +170,14 @@ class App {
                     value = 'Idle';
                 }
             } else if (sensor.id === 'Load_Power') {
-                let loadPower = data.Battery_to_House + data.Solar_to_House + data.Grid_to_House;
+                let gridPower = data.Grid_Power;
+                if (gridPower < 0) {
+                    gridPower = gridPower * -1;
+                }
+
+                // We need to subtract "grid to battery" power from "grid power" to get true house load,
+                // because each inverter treats other inverters as house load (as they're not aware of each other).
+                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery);
 
                 value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
@@ -232,6 +251,24 @@ class App {
             // If power or flow values are less than 10 Watts (less than 0.01 kW), treat as a zero-value
             if (value < 10) {
                 value = 0;
+                me.processedData[sensor.id] = 0;
+            }
+
+            // Sometimes the flow lines may have values, but the power sources may be zero.
+            // If the dependent sensor is zero, also set this sensor value to zero (to prevent the flow lines from rendering).
+            if (sensor.nonZeroValueCheck && value > 0) {
+                if (me.debugMode) {
+                    console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensor.nonZeroValueCheck}" with value ${me.processedData[sensor.nonZeroValueCheck]}.`);
+                }
+
+                if (me.processedData[sensor.nonZeroValueCheck] === 0) {
+                    if (me.debugMode) {
+                        console.log(`Setting "${sensor.id}" to 0 (was ${value}), because the dependent sensor is also zero.`);
+                    }
+
+                    value = 0;
+                    me.processedData[sensor.id] = 0;
+                }
             }
         }
 
@@ -409,6 +446,14 @@ class App {
 
                 group.removeClass('idle');
                 group.addClass('active');
+            }
+
+            if (me.debugMode) {
+                // Show all values if the app is in debug mode
+                let debugEl = $(`#debug_${sensor.id}`);
+                if (debugEl) {
+                    debugEl.text(value);
+                }
             }
         }
     }

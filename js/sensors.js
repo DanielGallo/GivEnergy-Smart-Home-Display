@@ -56,10 +56,10 @@ const Sensors = [{
     id: 'Grid_to_House',
     mapping: 'Power.Flows.Grid_to_House',
     type: SensorType.Flow,
+    nonZeroValueCheck: 'Grid_Power',
     flowElementId: 'grid_to_home',
-    nonZeroValueCheck: 'givtcp_import_power',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Any
 }, {
     id: 'Solar_to_Battery',
     mapping: 'Power.Flows.Solar_to_Battery',
@@ -85,6 +85,7 @@ const Sensors = [{
     id: 'Battery_to_Grid',
     mapping: 'Power.Flows.Battery_to_Grid',
     type: SensorType.Flow,
+    nonZeroValueCheck: 'Grid_Power',
     flowElementId: 'battery_with_grid',
     combinator: CombinatorType.Addition
 }, {
@@ -119,7 +120,7 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average      // All inverters might know about the total load?
 }, {
     id: 'daily_energy_offpeak',
     mapping: 'Energy.Rates.Night_Energy_kWh',
@@ -127,7 +128,7 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Average      // All inverters might know about the total load?
 }, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
@@ -147,7 +148,6 @@ const Sensors = [{
     textElementId: 'battery_percentage_text',
     type: SensorType.Summary,
     suffix: Suffix.Percent,
-    formatter: Formatters.roundToOneDecimalPlace,
     combinator: CombinatorType.Average
 }, {
     id: 'daily_energy_cost_peak',

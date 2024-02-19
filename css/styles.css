@@ -15,6 +15,11 @@ text {
     fill: #ffffff;
 }
 
+text.debug {
+    font-family: Menlo;
+    font-size: 9pt;
+}
+
 text.grouper {
     font-size: 10pt;
 }
