@@ -303,9 +303,9 @@ class App {
             let svgCloneableInverterElement = $('#inverterDetails')[0];
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
             let offsetY = 3;
-            let inverterOffsetAddition = 93;
-            let batteryOffsetAddition = 18;
-            let spacer = 16;
+            let inverterOffsetAddition = 113;
+            let batteryOffsetAddition = 20;
+            let spacer = 14;
             let inverterIndex = -1;
 
             // On first load, render the battery statistics panels
@@ -362,11 +362,6 @@ class App {
                     suffix: Suffix.Power
                 }));
 
-                let powerReserveEl = $(`#inverter_${inverterIndex} >> tspan.power_reserve`);
-                powerReserveEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Control.Battery_Power_Reserve'), {
-                    suffix: Suffix.Percent
-                }));
-
                 let targetChargeEl = $(`#inverter_${inverterIndex} >> tspan.target_soc`);
                 targetChargeEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Control.Target_SOC'), {
                     suffix: Suffix.Percent
@@ -412,12 +407,6 @@ class App {
                     remainingCapacityEl.text(Formatters.sensorValue(remainingKWh, {
                         suffix: Suffix.Energy,
                         formatter: Formatters.roundToOneDecimalPlace
-                    }));
-
-                    let temperatureEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.temperature`);
-                    temperatureEl.text(Formatters.sensorValue(battery['Battery_Temperature'], {
-                        suffix: Suffix.Temperature,
-                        formatter: Formatters.roundToWholeNumber
                     }));
                 });
             });

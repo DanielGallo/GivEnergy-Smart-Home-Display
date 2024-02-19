@@ -20,14 +20,6 @@ text.debug {
     font-size: 9pt;
 }
 
-text.grouper {
-    font-size: 10pt;
-}
-
-text.grouper tspan {
-    font-size: 12pt;
-}
-
 .circle {
     fill: #1c1c1c;
 }
@@ -74,7 +66,7 @@ text.overdue {
 }
 
 #inverter_panel tspan {
-    font-size: 10pt;
+    font-size: 12pt;
 }
 
 #inverter_panel text.label {
