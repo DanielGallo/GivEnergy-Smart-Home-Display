@@ -314,11 +314,11 @@ class App {
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
             let offsetX = 0;
             let offsetY = 3;
-            let inverterOffsetAddition = 114;
-            let batteryOffsetX = 55;
+            let inverterOffsetAddition = 116;
+            let batteryOffsetX = 65;
             let batteryOffsetYAddition = 36;
-            let batteryPanelStartingPositionX = 152;
-            let spacer = 14;
+            let batteryPanelStartingPositionX = 162;
+            let spacer = 12;
             let inverterIndex = -1;
 
             // On first load, render the battery statistics panels
@@ -385,7 +385,7 @@ class App {
                     suffix: Suffix.Percent
                 }));
 
-                let inverterStatus = 'Batteries idle';
+                let inverterStatus = 'Batteries Idle';
                 let inverterRate = null;
                 let chargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Charge_Power');
                 let dischargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Discharge_Power');

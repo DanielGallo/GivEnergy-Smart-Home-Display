@@ -124,7 +124,7 @@ const Sensors = [{
     suffix: Suffix.Energy,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: CombinatorType.Addition     // Assumes each inverter has its own solar array
 }, {
     id: 'daily_energy_peak',
     mapping: 'Energy.Rates.Day_Energy_kWh',
@@ -196,7 +196,7 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition // Assumes each inverter has its own solar array
+    combinator: CombinatorType.Addition     // Assumes each inverter has its own solar array
 }, {
     id: 'Battery_Statistics',
     mapping: 'Battery_Details',
