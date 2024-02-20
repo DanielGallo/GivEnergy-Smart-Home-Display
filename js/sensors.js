@@ -26,6 +26,7 @@ const Sensors = [{
     mapping: 'Power.Power.Grid_Power',
     type: SensorType.Power,
     nonZeroValueCheck: [
+        'Solar_to_Grid',
         'Grid_to_Battery',
         'Grid_to_House',
         'Battery_to_Grid'
@@ -74,6 +75,9 @@ const Sensors = [{
     id: 'Solar_to_Battery',
     mapping: 'Power.Flows.Solar_to_Battery',
     type: SensorType.Flow,
+    nonZeroValueCheck: [
+        'Battery_Power'
+    ],
     flowElementId: 'solar_to_battery',
     forceRefresh: true,
     combinator: CombinatorType.Addition
@@ -81,6 +85,9 @@ const Sensors = [{
     id: 'Solar_to_Grid',
     mapping: 'Power.Flows.Solar_to_Grid',
     type: SensorType.Flow,
+    nonZeroValueCheck: [
+        'Grid_Power'
+    ],
     flowElementId: 'solar_to_grid',
     forceRefresh: true,
     combinator: CombinatorType.Addition

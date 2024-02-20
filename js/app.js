@@ -14,6 +14,7 @@ class App {
         me.processedData = null;
         me.rendered = false;
         me.debugMode = false;
+        me.useSampleData = false;
         me.baseUrl = null;
 
         // Generate URL to GivTCP based on current URL of web app
@@ -23,6 +24,7 @@ class App {
         const urlParams = new URLSearchParams(window.location.search);
         const hostname = urlParams.get('hostname');
         const debug = urlParams.get('debug');
+        const sampleData = urlParams.get('sampledata');
 
         // If the hostname has been overridden, use it
         if (hostname) {
@@ -36,6 +38,11 @@ class App {
             me.debugMode = true;
             $('#debugPanel').show();
             console.log('Debug mode enabled.');
+        }
+
+        // For debugging purposes, enable inverter data to be read from static JSON files
+        if (sampleData) {
+            me.useSampleData = true;
         }
 
         // Fetch the settings from `app.json`
@@ -73,8 +80,10 @@ class App {
         // Get the initial set of data
         me.fetchData();
 
-        // Fetch the data from GivTCP every 8 seconds
-        setInterval(me.fetchData.bind(me), 8000);
+        if (me.useSampleData === false) {
+            // Fetch the data from GivTCP every 8 seconds
+            setInterval(me.fetchData.bind(me), 8000);
+        }
     }
 
     /**
@@ -83,9 +92,18 @@ class App {
     fetchData() {
         const me = this;
         me.cachedData = [];
+        me.processedData = {};
 
-        let fetchPromises = me.givTcpHosts.map((givTcpHost) => {
-            return fetch(`${me.baseUrl}:${givTcpHost.port}/readData`, {
+        let fetchPromises = me.givTcpHosts.map((givTcpHost, index) => {
+            let fetchUrl = `${me.baseUrl}:${givTcpHost.port}/readData`;
+            // For debugging purposes, enable inverter data to be read from static JSON files, to see how the dashboard displays it
+            if (me.useSampleData) {
+                let port = window.location.port;
+
+                fetchUrl = `${me.baseUrl}:${port}/data_samples/solar1/inverter_${index}_sample.json`;
+            }
+
+            return fetch(fetchUrl, {
                 mode: 'cors',
                 headers: {
                     'Access-Control-Allow-Origin': '*'
@@ -177,7 +195,8 @@ class App {
 
                 // We need to subtract "grid to battery" power from "grid power" to get true house load,
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
-                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery);
+                // Also subtract solar export (to the grid).
+                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Solar_to_Grid);
 
                 value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
