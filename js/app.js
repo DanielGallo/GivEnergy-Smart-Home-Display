@@ -193,10 +193,10 @@ class App {
                     gridPower = gridPower * -1;
                 }
 
-                // We need to subtract "grid to battery" power from "grid power" to get true house load,
+                // In a single phase environment we need to subtract "grid to battery" power from "grid power" to get true house load,
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
-                // Also subtract solar export (to the grid).
-                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Solar_to_Grid);
+                // Also subtract solar export (to the grid) and battery export (to the grid).
+                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid - data.Solar_to_Grid);
 
                 value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
