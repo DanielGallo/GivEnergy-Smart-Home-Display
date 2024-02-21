@@ -166,6 +166,7 @@ const Sensors = [{
     mapping: 'Power.Power.SOC',
     textElementId: 'battery_percentage_text',
     type: SensorType.Summary,
+    formatter: Formatters.roundToWholeNumber,
     suffix: Suffix.Percent,
     combinator: CombinatorType.Average
 }, {

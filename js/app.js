@@ -279,7 +279,7 @@ class App {
             if (sensor.nonZeroValueCheck && value > 0) {
                 let setSensorToZero = true;
 
-                sensor.nonZeroValueCheck.every(sensorToCheck => {
+                sensor.nonZeroValueCheck.forEach(sensorToCheck => {
                     if (me.debugMode) {
                         console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensorToCheck}" with value ${me.processedData[sensorToCheck]}.`);
                     }
