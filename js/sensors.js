@@ -139,7 +139,8 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Average      // All inverters might know about the total load?
+    //combinator: CombinatorType.Average      // All inverters might know about the total load?
+    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
 }, {
     id: 'daily_energy_offpeak',
     mapping: 'Energy.Rates.Night_Energy_kWh',
@@ -147,7 +148,8 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Average      // All inverters might know about the total load?
+    //combinator: CombinatorType.Average      // All inverters might know about the total load?
+    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
 }, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
@@ -177,7 +179,8 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Average
+    //combinator: CombinatorType.Average
+    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
 }, {
     id: 'daily_energy_cost_offpeak',
     mapping: 'Energy.Rates.Night_Cost',
@@ -186,7 +189,8 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Average
+    //combinator: CombinatorType.Average
+    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
 }, {
     id: 'Export_Income',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',

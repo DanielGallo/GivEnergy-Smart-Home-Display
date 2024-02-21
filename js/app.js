@@ -15,6 +15,7 @@ class App {
         me.rendered = false;
         me.debugMode = false;
         me.useSampleData = false;
+        me.sampleDataName = null;
         me.baseUrl = null;
 
         // Generate URL to GivTCP based on current URL of web app
@@ -43,6 +44,7 @@ class App {
         // For debugging purposes, enable inverter data to be read from static JSON files
         if (sampleData) {
             me.useSampleData = true;
+            me.sampleDataName = sampleData;
         }
 
         // Fetch the settings from `app.json`
@@ -100,7 +102,7 @@ class App {
             if (me.useSampleData) {
                 let port = window.location.port;
 
-                fetchUrl = `${me.baseUrl}:${port}/data_samples/solar1/inverter_${index}_sample.json`;
+                fetchUrl = `${me.baseUrl}:${port}/data_samples/${me.sampleDataName}/inverter_${index}_sample.json`;
             }
 
             return fetch(fetchUrl, {
@@ -539,6 +541,33 @@ class App {
 
             refreshIntervalText.text(`Inverter data last updated ${secondsText} second${suffix} ago`);
         }
+    }
+
+    /**
+     * Downloads the inverter data as JSON files from the cached data, so they can be debugged later when the data changes.
+     * Each file is named in the format "inverter_{{index}}_sample.json".
+     *
+     * @return {void}
+     */
+    downloadInverterData() {
+        var me = this;
+
+        me.cachedData.forEach((cachedDataItem, index) => {
+            const jsonStr = JSON.stringify(cachedDataItem.data, null, 2);
+
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `inverter_${index}_sample.json`;
+            document.body.appendChild(link);
+            link.click();
+
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
     }
 }
 
