@@ -23,9 +23,11 @@ class App {
 
         // But also allow the GivTCP hostname to be passed in as a "hostname" query string param
         const urlParams = new URLSearchParams(window.location.search);
-        const hostname = urlParams.get('hostname');
-        const debug = urlParams.get('debug');
-        const sampleData = urlParams.get('sampledata');
+        const hostname = urlParams.get('Hostname');
+        const sampleData = urlParams.get('SampleData');
+        me.showAdvancedInfo = urlParams.get('ShowAdvancedInfo') === 'true';
+        me.showTime = urlParams.get('ShowTime') === 'true';
+        me.debugMode = urlParams.get('DebugMode') === 'true';
 
         // If the hostname has been overridden, use it
         if (hostname) {
@@ -35,8 +37,7 @@ class App {
         me.baseUrl = baseUrl;
 
         // If debug mode is enabled
-        if (debug) {
-            me.debugMode = true;
+        if (me.debugMode) {
             $('#debugPanel').show();
             console.log('Debug mode enabled.');
         }
@@ -45,6 +46,11 @@ class App {
         if (sampleData) {
             me.useSampleData = true;
             me.sampleDataName = sampleData;
+        }
+
+        if (!me.showAdvancedInfo) {
+            $('#inverter_panel').hide();
+            $('#panel_divider').hide();
         }
 
         // Fetch the settings from `app.json`
@@ -198,7 +204,7 @@ class App {
                 // In a single phase environment we need to subtract "grid to battery" power from "grid power" to get true house load,
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
                 // Also subtract solar export (to the grid) and battery export (to the grid).
-                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid - data.Solar_to_Grid);
+                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid);
 
                 value = loadPower;
             } else if (sensor.id === 'Solar_Income') {
@@ -328,7 +334,9 @@ class App {
             if (group.children('line').length > 0) {
                 line = group.children('line')[0];
             }
-        } else if (sensor.type === SensorType.Summary && sensor.id === 'Inverter_Details') {
+        } else if (sensor.type === SensorType.Summary
+            && sensor.id === 'Inverter_Details'
+            && me.showAdvancedInfo) {
             let inverters = value;
             let svgContainerElement = $('#inverter_panel')[0];
             let svgCloneableInverterElement = $('#inverterDetails')[0];
@@ -490,20 +498,31 @@ class App {
     }
 
     resizeCanvas() {
+        let me = this;
         let width = document.body.clientWidth;
         let height = document.body.clientHeight;
         let canvas = $('#canvas')[0];
 
         if (width > height) {
             // Landscape mode
-            canvas.setAttribute('viewBox', '0 0 840 365');
+            if (me.showAdvancedInfo) {
+                canvas.setAttribute('viewBox', '0 0 840 375');
+            } else {
+                canvas.setAttribute('viewBox', '0 0 620 375');
+            }
             $('#diagram')[0].setAttribute('transform', '');
             $('#panels')[0].setAttribute('transform', '');
         } else {
             // Portrait mode
-            canvas.setAttribute('viewBox', '0 0 500 840');
-            $('#diagram')[0].setAttribute('transform', 'translate(16, 0), scale(1.3)');
-            $('#panels')[0].setAttribute('transform', 'translate(-392, 470), scale(1.07)');
+            if (me.showAdvancedInfo) {
+                canvas.setAttribute('viewBox', '0 0 500 880');
+                $('#diagram')[0].setAttribute('transform', 'translate(-2, 0), scale(1.4)');
+                $('#panels')[0].setAttribute('transform', 'translate(-392, 510), scale(1.07)');
+            } else {
+                canvas.setAttribute('viewBox', '0 0 500 960');
+                $('#diagram')[0].setAttribute('transform', 'translate(-2, 0), scale(1.4)');
+                $('#panels')[0].setAttribute('transform', 'translate(-370, 510), scale(1.28)');
+            }
         }
     }
 
@@ -530,16 +549,23 @@ class App {
     updateRefreshIntervalText() {
         const me = this;
 
-        //me.updateTime();
+        if (me.showTime) {
+            me.updateTime();
+        }
 
         if (me.processedData && me.processedData['Last_Updated_Time']) {
             const refreshIntervalText = $('#refreshIntervalText');
             const dateUpdated = new Date(me.processedData['Last_Updated_Time']);
-            const seconds = Math.round((new Date() - dateUpdated) / 1000);
-            const secondsText = Formatters.renderLargeNumber(seconds < 0 ? 0 : seconds);
-            const suffix = seconds === 1 ? '': 's';
 
-            refreshIntervalText.text(`Inverter data last updated ${secondsText} second${suffix} ago`);
+            if (isNaN(dateUpdated.getTime())) {
+                refreshIntervalText.text(`Error: Invalid response, trying again...`);
+            } else {
+                const seconds = Math.round((new Date() - dateUpdated) / 1000);
+                const secondsText = Formatters.renderLargeNumber(seconds < 0 ? 0 : seconds);
+                const suffix = seconds === 1 ? '': 's';
+
+                refreshIntervalText.text(`Inverter data last updated ${secondsText} second${suffix} ago`);
+            }
         }
     }
 
