@@ -336,6 +336,7 @@ class App {
             }
         } else if (sensor.type === SensorType.Summary
             && sensor.id === 'Inverter_Details'
+            && Array.isArray(value)
             && me.showAdvancedInfo) {
             let inverters = value;
             let svgContainerElement = $('#inverter_panel')[0];
@@ -460,7 +461,7 @@ class App {
                     }));
                 });
             });
-        } else if (sensor.type === SensorType.Summary) {
+        } else if (sensor.type === SensorType.Summary && !Array.isArray(value)) {
             element.text(Formatters.sensorValue(value, sensor));
         }
 
