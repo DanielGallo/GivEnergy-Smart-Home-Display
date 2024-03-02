@@ -208,11 +208,15 @@ class App {
 
                 value = loadPower;
 
-                if (data.Battery_to_House === 0 && data.Solar_to_House === 0 && data.Grid_to_House === 0 && data.Solar_to_Grid > 0) {
+                if (data.Battery_to_House === 0 && data.Solar_to_House === 0 && data.Grid_to_House === 0 && data.Solar_to_Grid > 10) {
                     // With multiple inverters, if solar is the only thing powering the house,
                     // the "Solar_to_House" can be zero (along with the other flows), so ensure
                     // the "solar to house" flow line is still rendered.
                     data.Solar_to_House = 10;
+                } else if (data.Battery_to_House === 0 && data.Solar_to_House === 0 && data.Grid_to_House === 0 && data.Battery_to_Grid > 10) {
+                    // If multiple inverters are exporting, ensure the flow line from the battery to the
+                    // house is still flowing.
+                    data.Battery_to_House = 10;
                 }
             } else if (sensor.id === 'Solar_Income') {
                 let income = value * me.solarRate;
