@@ -196,6 +196,11 @@ class App {
                     value = 'Idle';
                 }
             } else if (sensor.id === 'Load_Power') {
+                if (data.Export_Power === data.Solar_to_Grid
+                    && data.Export_Power > 0 && data.Solar_to_Grid > 0) {
+                    data.Grid_Power = data.Export_Power;
+                }
+
                 let gridPower = data.Grid_Power;
                 if (gridPower < 0) {
                     gridPower = gridPower * -1;

@@ -22,6 +22,11 @@ const Sensors = [{
     converter: Converters.wattsToKw,
     combinator: CombinatorType.Ignore
 }, {
+    id: 'Export_Power',
+    mapping: 'Power.Power.Export_Power',
+    converter: Converters.wattsToKw,
+    combinator: CombinatorType.Addition
+}, {
     id: 'Grid_Power',
     mapping: 'Power.Power.Grid_Power',
     type: SensorType.Power,
