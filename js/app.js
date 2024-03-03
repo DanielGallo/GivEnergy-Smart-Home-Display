@@ -204,7 +204,7 @@ class App {
                 // In a single phase environment we need to subtract "grid to battery" power from "grid power" to get true house load,
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
                 // Also subtract solar export (to the grid) and battery export (to the grid).
-                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid - data.Solar_to_Grid);
+                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid - data.Solar_to_Grid - (data.Charge_Power * -1));
 
                 value = loadPower;
 
@@ -217,6 +217,13 @@ class App {
                     // If multiple inverters are exporting, ensure the flow line from the battery to the
                     // house is still flowing.
                     data.Battery_to_House = 10;
+                }
+
+                if (data.Charge_Power > 0 && data.Solar_to_House > 0 && data.Solar_to_Grid > 0 && data.Solar_to_Battery === 0 && data.Grid_to_House === 0) {
+                    // With multiple inverters on a single phase, when solar is fully powering the house, exporting,
+                    // and charging the batteries, there's no flow between solar and batteries. Force this flow to be
+                    // rendered.
+                    data.Solar_to_Battery = 10;
                 }
             } else if (sensor.id === 'Solar_Income') {
                 let income = value * me.solarRate;
