@@ -1,6 +1,6 @@
 const SensorType = {
-    Power: 'Power',
     Flow: 'Flow',
+    Power: 'Power',
     Summary: 'Summary'
 };
 
@@ -9,9 +9,22 @@ const Prefix = {
 };
 
 const Suffix = {
-    Power: ' kW',
     Energy: ' kWh',
-    Percent: '%'
+    Frequency: ' Hz',
+    Percent: '%',
+    Power: ' kW',
+    Temperature: '°C',
+    Voltage: ' V'
 };
 
-export { SensorType, Prefix, Suffix };
+const CombinatorType = {
+    All: 'All',
+    Any: 'Any',
+    Addition: 'Addition',
+    Average: 'Average',
+    EarliestDate: 'EarliestDate',
+    Separate: 'Separate',
+    Ignore: 'Ignore'
+}
+
+export { SensorType, Prefix, Suffix, CombinatorType };

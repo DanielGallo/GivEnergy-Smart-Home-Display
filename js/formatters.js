@@ -14,6 +14,11 @@ class Formatters {
             text = sensor.converter.call(me, text);
         }
 
+        // If the value requires other special formatting
+        if (sensor.formatter) {
+            text = sensor.formatter.call(me, text);
+        }
+
         // Add any prefix
         if (sensor.prefix) {
             text = `${sensor.prefix}${text}`;
@@ -25,6 +30,18 @@ class Formatters {
         }
 
         return text;
+    }
+
+    static roundToOneDecimalPlace(value) {
+        return value.toFixed(1);
+    }
+
+    static roundToWholeNumber(value) {
+        return value.toFixed(0);
+    }
+
+    static renderLargeNumber(value) {
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 }
 

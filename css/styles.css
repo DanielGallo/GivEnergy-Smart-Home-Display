@@ -1,8 +1,27 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
-    background-color: black;
-    font-family: Tahoma, Arial;
+    background-color: #1c1c1c;
+    font-family: Roboto, Noto, sans-serif;
     font-size: 14pt;
     color: #ffffff;
+}
+
+text {
+    fill: #ffffff;
+}
+
+text.debug {
+    font-family: Menlo;
+    font-size: 9pt;
+}
+
+.circle {
+    fill: #1c1c1c;
 }
 
 .circle_scale {
@@ -32,16 +51,31 @@ marker path.connector {
     stroke-width: 2;
 }
 
-#summary_panel text {
-    fill: #ffffff;
-}
-
 #summary_panel text.clock {
-    fill: #c9c9c9;
+    fill: #b6b6b6;
 }
 
-#summary_panel tspan.label {
-    font-weight: bold;
+text.refreshText {
+    fill: #9f9f9f;
+    font-size: 9pt;
+}
+
+text.overdue {
+    stroke: #ff0c00;
+    stroke-width: 1;
+}
+
+#inverter_panel tspan {
+    font-size: 12pt;
+}
+
+#inverter_panel text.label {
+    font-size: 14pt;
+}
+
+tspan.label, text.label {
+    fill: rgb(163, 163, 163);
+    font-weight: normal;
     font-size: 100%;
 }
 
@@ -62,7 +96,10 @@ marker path.connector {
 }
 
 .graphic {
-    stroke-width: 1;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    fill: #1c1c1c;
 }
 
 .active circle#power_grid_circle, #power_grid.active path.graphic, #summary_panel path.graphic-grid {
