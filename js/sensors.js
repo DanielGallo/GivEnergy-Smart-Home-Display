@@ -5,27 +5,47 @@ import { Formatters } from './formatters.js';
 const Sensors = [{
     id: 'Last_Updated_Time',
     mapping: 'Last_Updated_Time',
-    combinator: CombinatorType.EarliestDate
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.EarliestDate,
+        singlePhaseMultipleInverters: CombinatorType.EarliestDate,
+        multiplePhases: CombinatorType.EarliestDate
+    }
 }, {
     id: 'Charge_Power',
     mapping: 'Power.Power.Charge_Power',
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Discharge_Power',
     mapping: 'Power.Power.Discharge_Power',
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Load_Power',
     mapping: 'Power.Power.Load_Power',
     type: SensorType.Power,
     textElementId: 'power_home_text',
     converter: Converters.wattsToKw,
-    combinator: CombinatorType.Ignore
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Ignore,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Export_Power',
     mapping: 'Power.Power.Export_Power',
     converter: Converters.wattsToKw,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Grid_Power',
     mapping: 'Power.Power.Grid_Power',
@@ -39,7 +59,11 @@ const Sensors = [{
     textElementId: 'power_grid_text',
     converter: Converters.wattsToKw,
     forceRefresh: true,
-    combinator: CombinatorType.Any
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'PV_Power',
     mapping: 'Power.Power.PV_Power',
@@ -47,7 +71,11 @@ const Sensors = [{
     textElementId: 'power_solar_text',
     converter: Converters.wattsToKw,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Battery_Power',
     mapping: 'Power.Power.Battery_Power',
@@ -55,7 +83,11 @@ const Sensors = [{
     textElementId: 'power_battery_text',
     converter: Converters.wattsToKw,
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Grid_to_Battery',
     mapping: 'Power.Flows.Grid_to_Battery',
@@ -65,7 +97,11 @@ const Sensors = [{
     ],
     flowElementId: 'battery_with_grid',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Grid_to_House',
     mapping: 'Power.Flows.Grid_to_House',
@@ -75,7 +111,11 @@ const Sensors = [{
     ],
     flowElementId: 'grid_to_home',
     forceRefresh: true,
-    combinator: CombinatorType.Any
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Solar_to_Battery',
     mapping: 'Power.Flows.Solar_to_Battery',
@@ -85,7 +125,11 @@ const Sensors = [{
     ],
     flowElementId: 'solar_to_battery',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Solar_to_Grid',
     mapping: 'Power.Flows.Solar_to_Grid',
@@ -95,14 +139,22 @@ const Sensors = [{
     ],
     flowElementId: 'solar_to_grid',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Solar_to_House',
     mapping: 'Power.Flows.Solar_to_House',
     type: SensorType.Flow,
     flowElementId: 'solar_to_home',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Battery_to_Grid',
     mapping: 'Power.Flows.Battery_to_Grid',
@@ -111,14 +163,22 @@ const Sensors = [{
         'Grid_Power'
     ],
     flowElementId: 'battery_with_grid',
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Battery_to_House',
     mapping: 'Power.Flows.Battery_to_House',
     type: SensorType.Flow,
     flowElementId: 'battery_to_home',
     forceRefresh: true,
-    combinator: CombinatorType.Addition
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Load_Energy_Today_kWh',
     mapping: 'Energy.Today.Load_Energy_Today_kWh',
@@ -127,7 +187,11 @@ const Sensors = [{
     suffix: Suffix.Energy,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Average      // All inverters might know about the total load?
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Average,   // All inverters might know about the total load?
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'PV_Energy_Today_kWh',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
@@ -136,7 +200,11 @@ const Sensors = [{
     suffix: Suffix.Energy,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Addition     // Assumes each inverter has its own solar array
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'daily_energy_peak',
     mapping: 'Energy.Rates.Day_Energy_kWh',
@@ -144,8 +212,11 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    //combinator: CombinatorType.Average      // All inverters might know about the total load?
-    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,   // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'daily_energy_offpeak',
     mapping: 'Energy.Rates.Night_Energy_kWh',
@@ -153,8 +224,11 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    //combinator: CombinatorType.Average      // All inverters might know about the total load?
-    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,   // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
@@ -162,12 +236,20 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToOneDecimalPlace,
     forceRefresh: true,
-    combinator: CombinatorType.Average  // Each inverter appears to know the same total export amount, but they're off by a very small amount.
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Average,   // Each inverter appears to know the same total export amount, but they're off by a very small amount, so use an average.
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Battery_State',
     textElementId: 'battery_state_text',
     type: SensorType.Summary,
-    combinator: CombinatorType.Ignore
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Ignore,
+        multiplePhases: CombinatorType.Ignore
+    }
 }, {
     id: 'Battery_State_of_Charge',
     mapping: 'Power.Power.SOC',
@@ -175,7 +257,11 @@ const Sensors = [{
     type: SensorType.Summary,
     formatter: Formatters.roundToWholeNumber,
     suffix: Suffix.Percent,
-    combinator: CombinatorType.Average
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Average,
+        multiplePhases: CombinatorType.Average
+    }
 }, {
     id: 'daily_energy_cost_peak',
     mapping: 'Energy.Rates.Day_Cost',
@@ -184,8 +270,11 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    //combinator: CombinatorType.Average
-    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'daily_energy_cost_offpeak',
     mapping: 'Energy.Rates.Night_Cost',
@@ -194,8 +283,11 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    //combinator: CombinatorType.Average
-    combinator: CombinatorType.Any      // Temporarily use total peak/off-peak kWh from first inverter - second inverter usage jumps up randomly (issue in GivTCP?)
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Export_Income',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
@@ -204,7 +296,11 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Average  // Uses the same field above that's averaged across inverters.
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Average,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Solar_Income',
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
@@ -213,17 +309,46 @@ const Sensors = [{
     prefix: Prefix.Currency,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
-    combinator: CombinatorType.Addition     // Assumes each inverter has its own solar array
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
 }, {
     id: 'Battery_Statistics',
     mapping: 'Battery_Details',
     type: SensorType.Summary,
-    combinator: CombinatorType.All
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.All,
+        singlePhaseMultipleInverters: CombinatorType.All,
+        multiplePhases: CombinatorType.All
+    }
 }, {
     id: 'Inverter_Details',
     mapping: 'Invertor_Details',
     type: SensorType.Summary,
-    combinator: CombinatorType.All
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.All,
+        singlePhaseMultipleInverters: CombinatorType.All,
+        multiplePhases: CombinatorType.All
+    }
+}, {
+    id: 'Export_Power',
+    mapping: 'Power.Power.Export_Power',
+    converter: Converters.wattsToKw,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
+}, {
+    id: 'Num_Phases',
+    mapping: 'raw.invertor.num_phases',
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Any
+    }
 }];
 
 export { Sensors };

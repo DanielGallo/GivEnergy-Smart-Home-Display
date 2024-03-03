@@ -17,6 +17,8 @@ class App {
         me.useSampleData = false;
         me.sampleDataName = null;
         me.baseUrl = null;
+        me.singlePhase = true;
+        me.singleInverter = true;
 
         // Generate URL to GivTCP based on current URL of web app
         let baseUrl = window.location.protocol + '//' + window.location.hostname;
@@ -64,6 +66,10 @@ class App {
                 me.exportRate = data.exportRate;
 
                 if (me.givTcpHosts != null && me.solarRate != null && me.exportRate != null) {
+                    if (me.givTcpHosts.length > 1) {
+                        me.singleInverter = false;
+                    }
+
                     me.givTcpHosts.forEach((givTcpHost, index) => {
                         givTcpHost.sortOrder = index;
                     });
@@ -145,18 +151,35 @@ class App {
 
         me.processedData = {};
 
+        const phases = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, 'raw.invertor.num_phases');
+        me.singlePhase = phases === 0;
+
+        if (me.debugMode) {
+            console.log('Single phase: ', me.singlePhase);
+            console.log('Single inverter: ', me.singleInverter);
+        }
+
         Sensors.forEach((sensor) => {
             let value = null;
+            let combinator = null;
 
-            if (sensor.combinator === CombinatorType.Addition) {
+            if (me.singlePhase && me.singleInverter) {
+                combinator = sensor.combinator.singlePhaseSingleInverter;
+            } else if (me.singlePhase && me.singleInverter === false) {
+                combinator = sensor.combinator.singlePhaseMultipleInverters;
+            } else {
+                combinator = sensor.combinator.multiplePhases;
+            }
+
+            if (combinator === CombinatorType.Addition) {
                 value = 0;
 
                 me.cachedData.forEach((cachedRecord) => {
                     value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
                 });
-            } else if (sensor.combinator === CombinatorType.Any) {
+            } else if (combinator === CombinatorType.Any) {
                 value = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, sensor.mapping);
-            } else if (sensor.combinator === CombinatorType.Average) {
+            } else if (combinator === CombinatorType.Average) {
                 let numbers = [];
 
                 me.cachedData.forEach((cachedRecord) => {
@@ -165,7 +188,7 @@ class App {
 
                 let sum = numbers.reduce((a, b) => a + b, 0);
                 value = sum / numbers.length;
-            } else if (sensor.combinator === CombinatorType.EarliestDate) {
+            } else if (combinator === CombinatorType.EarliestDate) {
                 let dates = [];
 
                 me.cachedData.forEach((cachedRecord) => {
@@ -195,7 +218,9 @@ class App {
                 } else {
                     value = 'Idle';
                 }
-            } else if (sensor.id === 'Load_Power') {
+            } else if (sensor.id === 'Load_Power'
+                && me.singlePhase === true
+                && me.singleInverter === false) {
                 if (data.Export_Power === data.Solar_to_Grid
                     && data.Export_Power > 0 && data.Solar_to_Grid > 0) {
                     data.Grid_Power = data.Export_Power;
