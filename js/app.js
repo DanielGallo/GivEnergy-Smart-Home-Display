@@ -163,42 +163,44 @@ class App {
             let value = null;
             let combinator = null;
 
-            if (me.singlePhase && me.singleInverter) {
-                combinator = sensor.combinator.singlePhaseSingleInverter;
-            } else if (me.singlePhase && me.singleInverter === false) {
-                combinator = sensor.combinator.singlePhaseMultipleInverters;
-            } else {
-                combinator = sensor.combinator.multiplePhases;
+            if (sensor.mapping) {
+                if (me.singlePhase && me.singleInverter) {
+                    combinator = sensor.combinator.singlePhaseSingleInverter;
+                } else if (me.singlePhase && me.singleInverter === false) {
+                    combinator = sensor.combinator.singlePhaseMultipleInverters;
+                } else {
+                    combinator = sensor.combinator.multiplePhases;
+                }
+
+                if (combinator === CombinatorType.Addition) {
+                    value = 0;
+
+                    me.cachedData.forEach((cachedRecord) => {
+                        value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                    });
+                } else if (combinator === CombinatorType.Any) {
+                    value = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, sensor.mapping);
+                } else if (combinator === CombinatorType.Average) {
+                    let numbers = [];
+
+                    me.cachedData.forEach((cachedRecord) => {
+                        numbers.push(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping));
+                    });
+
+                    let sum = numbers.reduce((a, b) => a + b, 0);
+                    value = sum / numbers.length;
+                } else if (combinator === CombinatorType.EarliestDate) {
+                    let dates = [];
+
+                    me.cachedData.forEach((cachedRecord) => {
+                        dates.push(new Date(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping)));
+                    });
+
+                    value = new Date(Math.min.apply(null, dates));
+                }
+
+                me.processedData[sensor.id] = value;
             }
-
-            if (combinator === CombinatorType.Addition) {
-                value = 0;
-
-                me.cachedData.forEach((cachedRecord) => {
-                    value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
-                });
-            } else if (combinator === CombinatorType.Any) {
-                value = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, sensor.mapping);
-            } else if (combinator === CombinatorType.Average) {
-                let numbers = [];
-
-                me.cachedData.forEach((cachedRecord) => {
-                    numbers.push(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping));
-                });
-
-                let sum = numbers.reduce((a, b) => a + b, 0);
-                value = sum / numbers.length;
-            } else if (combinator === CombinatorType.EarliestDate) {
-                let dates = [];
-
-                me.cachedData.forEach((cachedRecord) => {
-                    dates.push(new Date(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping)));
-                });
-
-                value = new Date(Math.min.apply(null, dates));
-            }
-
-            me.processedData[sensor.id] = value;
         });
 
         const data = me.processedData;
@@ -226,15 +228,10 @@ class App {
                     data.Grid_Power = data.Export_Power;
                 }
 
-                let gridPower = data.Grid_Power;
-                if (gridPower < 0) {
-                    gridPower = gridPower * -1;
-                }
-
-                // In a single phase environment we need to subtract "grid to battery" power from "grid power" to get true house load,
+                // In a single phase environment we need to carefully calculate house load
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
-                // Also subtract solar export (to the grid) and battery export (to the grid).
-                let loadPower = data.Battery_to_House + data.Solar_to_House + (gridPower - data.Grid_to_Battery - data.Battery_to_Grid - data.Solar_to_Grid - (data.Charge_Power * -1));
+                let totalSourcePower = data.PV_Power + data.Discharge_Power + data.Import_Power;
+                let loadPower = totalSourcePower - data.Charge_Power - data.Export_Power;
 
                 value = loadPower;
 

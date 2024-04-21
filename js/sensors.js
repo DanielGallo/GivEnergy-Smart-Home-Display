@@ -338,7 +338,25 @@ const Sensors = [{
     converter: Converters.wattsToKw,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
+}, {
+    id: 'Discharge_Power',
+    mapping: 'Power.Power.Discharge_Power',
+    converter: Converters.wattsToKw,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
         singlePhaseMultipleInverters: CombinatorType.Addition,
+        multiplePhases: CombinatorType.Addition
+    }
+}, {
+    id: 'Import_Power',
+    mapping: 'Power.Power.Import_Power',
+    converter: Converters.wattsToKw,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
         multiplePhases: CombinatorType.Addition
     }
 }, {
