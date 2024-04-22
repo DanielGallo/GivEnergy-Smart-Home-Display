@@ -266,11 +266,9 @@ class App {
                 let inverters = [];
 
                 me.cachedData.forEach((cachedRecord) => {
-                    let inverterBatteries = Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Battery_Details');
-
-                    let batteryArray = Object.keys(inverterBatteries).map(function(key) {
-                        return inverterBatteries[key];
-                    });
+                    let batteryArray = Helpers.getBatteriesFromInverter(
+                        Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Battery_Details')
+                    );
 
                     inverters.push({
                         name: cachedRecord.name,

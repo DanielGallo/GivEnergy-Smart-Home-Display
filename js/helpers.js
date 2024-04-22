@@ -14,6 +14,27 @@ class Helpers {
 
         return obj;
     }
+
+    /**
+     * Extracts battery objects and returns the batteries in an array.
+     * Filters out any properties under the `batteries` collection that aren't an object
+     * (e.g. strings `BMS_Temperature` and `BMS_Voltage`).
+     * @param batteries The raw batteries object from the inverter
+     * @returns {*[]} The filtered array of batteries
+     */
+    static getBatteriesFromInverter(batteries) {
+        const filtered = {};
+
+        Object.keys(batteries).forEach(key => {
+            if (typeof batteries[key] === 'object' && batteries[key] !== null) {
+                filtered[key] = batteries[key];
+            }
+        });
+
+        return Object.keys(filtered).map(function(key) {
+            return filtered[key];
+        });
+    }
 }
 
 export { Helpers };
