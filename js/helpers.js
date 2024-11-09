@@ -24,10 +24,16 @@ class Helpers {
      */
     static getBatteriesFromInverter(batteries) {
         const filtered = {};
+        let batteriesObject = batteries;
 
-        Object.keys(batteries).forEach(key => {
-            if (typeof batteries[key] === 'object' && batteries[key] !== null) {
-                filtered[key] = batteries[key];
+        // GivTCP v3 added the batteries under a nested object called `Battery_Stack_1`
+        if (typeof batteries.Battery_Stack_1 !== 'undefined') {
+            batteriesObject = batteries.Battery_Stack_1;
+        }
+
+        Object.keys(batteriesObject).forEach(key => {
+            if (typeof batteriesObject[key] === 'object' && batteriesObject[key] !== null) {
+                filtered[key] = batteriesObject[key];
             }
         });
 

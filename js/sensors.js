@@ -4,7 +4,7 @@ import { Formatters } from './formatters.js';
 
 const Sensors = [{
     id: 'Last_Updated_Time',
-    mapping: 'Last_Updated_Time',
+    mapping: 'Stats.Last_Updated_Time',
     combinator: {
         singlePhaseSingleInverter: CombinatorType.EarliestDate,
         singlePhaseMultipleInverters: CombinatorType.EarliestDate,
