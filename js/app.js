@@ -165,6 +165,12 @@ class App {
     onResponse() {
         const me = this;
 
+        if (me.cachedInverterData.length === 0) {
+            const refreshIntervalText = $('#refreshIntervalText');
+            refreshIntervalText.text(`Error: No inverter data, trying again...`);
+            return;
+        }
+
         me.updateRefreshIntervalText();
         setInterval(me.updateRefreshIntervalText.bind(me), 1000);
 
@@ -238,8 +244,7 @@ class App {
 
                         gateways.push({
                             data: {
-                                gatewayMode: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_Mode`),
-                                gatewayState: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_State`)
+                                gatewayMode: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_Mode`)
                             }
                         });
                     });
@@ -437,7 +442,7 @@ class App {
             let gateways = value;
             let svgContainerElement = $('#inverter_panel')[0];
             let svgCloneableGatewayElement = $('#gatewayDetails')[0];
-            let gatewayOffsetAddition = 78;
+            let gatewayOffsetAddition = 54;
             let gatewayIndex = -1;
 
             // On first load, render the gateway panel
@@ -463,9 +468,6 @@ class App {
 
                 let modeEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_mode`);
                 modeEl.text(gateway.data.gatewayMode);
-
-                let stateEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_state`);
-                stateEl.text(gateway.data.gatewayState);
             });
         } else if (sensor.type === SensorType.Summary
             && sensor.id === 'Inverter_Details'

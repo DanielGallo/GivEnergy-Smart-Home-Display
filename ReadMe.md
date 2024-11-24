@@ -49,7 +49,7 @@ able to launch the web app via `http://10.0.0.210:3000` (assumes `10.0.0.210` is
 You can append additional query-string parameters to show more advanced information:
 
 - `ShowAdvancedInfo=true` - this will show/hide advanced information for each inverter, including individual battery state of charge.
-  Defaults to `false`.
+  Defaults to `true`.
 - `ShowTime=true` - will show/hide the current time in the top-left corner of the app - useful if you want to use this fullscreen
   on a tablet or mobile device.
   Defaults to `false`.
