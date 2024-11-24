@@ -1,5 +1,5 @@
 import { CombinatorType, SensorType, Suffix } from './enums.js';
-import { Sensors } from './sensors.js';
+import { GatewaySensors, InverterSensors } from './sensors.js';
 import { Helpers } from './helpers.js';
 import { Formatters } from './formatters.js';
 import { Converters } from './converters.js';
@@ -11,14 +11,17 @@ class App {
         me.givTcpHosts = null;
         me.solarRate = null;
         me.exportRate = null;
-        me.processedData = null;
-        me.rendered = false;
+        me.processedGatewayData = null;
+        me.processedInverterData = null;
+        me.inverterRendered = false;
+        me.gatewayRendered = false;
         me.debugMode = false;
         me.useSampleData = false;
         me.sampleDataName = null;
         me.baseUrl = null;
         me.singlePhase = true;
         me.singleInverter = true;
+        me.summaryOffsetY = 3;
 
         // Generate URL to GivTCP based on current URL of web app
         let baseUrl = window.location.protocol + '//' + window.location.hostname;
@@ -27,7 +30,9 @@ class App {
         const urlParams = new URLSearchParams(window.location.search);
         const hostname = urlParams.get('Hostname');
         const sampleData = urlParams.get('SampleData');
-        me.showAdvancedInfo = urlParams.get('ShowAdvancedInfo') === 'true';
+        me.showAdvancedInfo = urlParams.has('ShowAdvancedInfo')
+            ? urlParams.get('ShowAdvancedInfo') === 'true'
+            : true;
         me.showTime = urlParams.get('ShowTime') === 'true';
         me.debugMode = urlParams.get('DebugMode') === 'true';
 
@@ -105,8 +110,10 @@ class App {
      */
     fetchData() {
         const me = this;
-        me.cachedData = [];
-        me.processedData = {};
+        me.cachedGatewayData = [];
+        me.cachedInverterData = [];
+        me.processedGatewayData = {};
+        me.processedInverterData = {};
 
         let fetchPromises = me.givTcpHosts.map((givTcpHost, index) => {
             let fetchUrl = `${me.baseUrl}:${givTcpHost.port}/readData`;
@@ -125,7 +132,19 @@ class App {
             }).then(response => {
                 return response.json();
             }).then(data => {
-                me.cachedData.push({
+                let target = me.cachedInverterData;
+
+                if (data.raw
+                    && data.raw.invertor
+                    && data.raw.invertor.serial_number) {
+                    const serialNumber = data.raw.invertor.serial_number;
+
+                    if (serialNumber.startsWith('GW')) {
+                        target = me.cachedGatewayData;
+                    }
+                }
+
+                target.push({
                     name: givTcpHost.name,
                     sortOrder: givTcpHost.sortOrder,
                     data: data
@@ -134,7 +153,7 @@ class App {
         });
 
         Promise.all(fetchPromises).then(() => {
-            me.cachedData.sort((a, b) => a.sortOrder - b.sortOrder);
+            me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
 
             me.onResponse();
         });
@@ -149,9 +168,10 @@ class App {
         me.updateRefreshIntervalText();
         setInterval(me.updateRefreshIntervalText.bind(me), 1000);
 
-        me.processedData = {};
+        me.processedGatewayData = {};
+        me.processedInverterData = {};
 
-        const phases = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, 'raw.invertor.num_phases');
+        const phases = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.num_phases');
         me.singlePhase = phases === 0;
 
         if (me.debugMode) {
@@ -159,7 +179,7 @@ class App {
             console.log('Single inverter: ', me.singleInverter);
         }
 
-        Sensors.forEach((sensor) => {
+        InverterSensors.forEach((sensor) => {
             let value = null;
             let combinator = null;
 
@@ -175,15 +195,15 @@ class App {
                 if (combinator === CombinatorType.Addition) {
                     value = 0;
 
-                    me.cachedData.forEach((cachedRecord) => {
+                    me.cachedInverterData.forEach((cachedRecord) => {
                         value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
                     });
                 } else if (combinator === CombinatorType.Any) {
-                    value = Helpers.getPropertyValueFromMapping(me.cachedData[0].data, sensor.mapping);
+                    value = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, sensor.mapping);
                 } else if (combinator === CombinatorType.Average) {
                     let numbers = [];
 
-                    me.cachedData.forEach((cachedRecord) => {
+                    me.cachedInverterData.forEach((cachedRecord) => {
                         numbers.push(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping));
                     });
 
@@ -192,26 +212,57 @@ class App {
                 } else if (combinator === CombinatorType.EarliestDate) {
                     let dates = [];
 
-                    me.cachedData.forEach((cachedRecord) => {
+                    me.cachedInverterData.forEach((cachedRecord) => {
                         dates.push(new Date(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping)));
                     });
 
                     value = new Date(Math.min.apply(null, dates));
                 }
 
-                me.processedData[sensor.id] = value;
+                me.processedInverterData[sensor.id] = value;
             }
         });
 
-        const data = me.processedData;
+        const inverterData = me.processedInverterData;
 
-        Sensors.forEach((sensor) => {
-            let value = me.processedData[sensor.id];
+        // If there are one or more Gateways
+        if (me.cachedGatewayData.length > 0) {
+            GatewaySensors.forEach((sensor) => {
+                let value = null;
+
+                if (sensor.id === 'Gateway_Details') {
+                    let gateways = [];
+
+                    me.cachedGatewayData.forEach((cachedRecord) => {
+                        let mappingPrefix = cachedRecord.data.raw.invertor.serial_number;
+
+                        gateways.push({
+                            data: {
+                                gatewayMode: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_Mode`),
+                                gatewayState: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_State`)
+                            }
+                        });
+                    });
+
+                    value = gateways;
+                }
+
+                if (value || sensor.forceRefresh) {
+                    me.processItem({
+                        sensor: sensor,
+                        value: value
+                    });
+                }
+            });
+        }
+
+        InverterSensors.forEach((sensor) => {
+            let value = me.processedInverterData[sensor.id];
 
             // Some sensors require custom calculation of the values
             if (sensor.id === 'Battery_State') {
-                let chargeRate = data.Charge_Power;
-                let dischargeRate = data.Discharge_Power;
+                let chargeRate = inverterData.Charge_Power;
+                let dischargeRate = inverterData.Discharge_Power;
 
                 if (dischargeRate > 0) {
                     value = 'Discharging';
@@ -223,36 +274,36 @@ class App {
             } else if (sensor.id === 'Load_Power'
                 && me.singlePhase === true
                 && me.singleInverter === false) {
-                if (data.Export_Power === data.Solar_to_Grid
-                    && data.Export_Power > 0 && data.Solar_to_Grid > 0) {
-                    data.Grid_Power = data.Export_Power;
+                if (inverterData.Export_Power === inverterData.Solar_to_Grid
+                    && inverterData.Export_Power > 0 && inverterData.Solar_to_Grid > 0) {
+                    inverterData.Grid_Power = inverterData.Export_Power;
                 }
 
                 // In a single phase environment we need to carefully calculate house load
                 // because each inverter treats other inverters as house load (as they're not aware of each other).
-                let totalSourcePower = data.PV_Power + data.Discharge_Power + data.Import_Power;
-                let loadPower = totalSourcePower - data.Charge_Power - data.Export_Power;
+                let totalSourcePower = inverterData.PV_Power + inverterData.Discharge_Power + inverterData.Import_Power;
+                let loadPower = totalSourcePower - inverterData.Charge_Power - inverterData.Export_Power;
 
                 value = loadPower;
 
-                if (data.Battery_to_House === 0 && data.Solar_to_House === 0 && data.Grid_to_House === 0 && data.Solar_to_Grid > 10) {
+                if (inverterData.Battery_to_House === 0 && inverterData.Solar_to_House === 0 && inverterData.Grid_to_House === 0 && inverterData.Solar_to_Grid > 10) {
                     // With multiple inverters, if solar is the only thing powering the house,
                     // the "Solar_to_House" can be zero (along with the other flows), so ensure
                     // the "solar to house" flow line is still rendered.
-                    data.Solar_to_House = 10;
+                    inverterData.Solar_to_House = 10;
                 }
 
-                if (data.Battery_to_House === 0 && data.Grid_to_House === 0 && data.Battery_to_Grid > 10) {
+                if (inverterData.Battery_to_House === 0 && inverterData.Grid_to_House === 0 && inverterData.Battery_to_Grid > 10) {
                     // If multiple inverters are exporting, ensure the flow line from the battery to the
                     // house is still flowing.
-                    data.Battery_to_House = 10;
+                    inverterData.Battery_to_House = 10;
                 }
 
-                if (data.Charge_Power > 0 && data.Solar_to_House > 0 && data.Solar_to_Grid > 0 && data.Solar_to_Battery === 0 && data.Grid_to_House === 0) {
+                if (inverterData.Charge_Power > 0 && inverterData.Solar_to_House > 0 && inverterData.Solar_to_Grid > 0 && inverterData.Solar_to_Battery === 0 && inverterData.Grid_to_House === 0) {
                     // With multiple inverters on a single phase, when solar is fully powering the house, exporting,
                     // and charging the batteries, there's no flow between solar and batteries. Force this flow to be
                     // rendered.
-                    data.Solar_to_Battery = 10;
+                    inverterData.Solar_to_Battery = 10;
                 }
             } else if (sensor.id === 'Solar_Income') {
                 let income = value * me.solarRate;
@@ -265,14 +316,14 @@ class App {
             } else if (sensor.id === 'Inverter_Details') {
                 let inverters = [];
 
-                me.cachedData.forEach((cachedRecord) => {
+                me.cachedInverterData.forEach((cachedRecord) => {
                     let batteryArray = Helpers.getBatteriesFromInverter(
                         Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Battery_Details')
                     );
 
                     inverters.push({
                         name: cachedRecord.name,
-                        data: data,
+                        data: inverterData,
                         rawData: cachedRecord.data,
                         batteries: batteryArray
                     });
@@ -323,7 +374,7 @@ class App {
             // If power or flow values are less than 10 Watts (less than 0.01 kW), treat as a zero-value
             if (value < 10) {
                 value = 0;
-                me.processedData[sensor.id] = 0;
+                me.processedInverterData[sensor.id] = 0;
             }
 
             // Sometimes the flow lines or power sources may have values, but the dependent sensors may all be zero.
@@ -334,11 +385,11 @@ class App {
 
                 sensor.nonZeroValueCheck.forEach(sensorToCheck => {
                     if (me.debugMode) {
-                        console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensorToCheck}" with value ${me.processedData[sensorToCheck]}.`);
+                        console.log(`Perform a non-zero value check from "${sensor.id}" with value ${value}, dependent on "${sensorToCheck}" with value ${me.processedInverterData[sensorToCheck]}.`);
                     }
 
                     // At least one of the dependent sensors has a non-zero value, so don't reset the source sensor to zero.
-                    if (me.processedData[sensorToCheck] !== 0) {
+                    if (me.processedInverterData[sensorToCheck] !== 0) {
                         setSensorToZero = false;
                     }
                 });
@@ -349,7 +400,7 @@ class App {
                     }
 
                     value = 0;
-                    me.processedData[sensor.id] = 0;
+                    me.processedInverterData[sensor.id] = 0;
                 }
             }
         }
@@ -380,6 +431,43 @@ class App {
                 line = group.children('line')[0];
             }
         } else if (sensor.type === SensorType.Summary
+            && sensor.id === 'Gateway_Details'
+            && Array.isArray(value)
+            && me.showAdvancedInfo) {
+            let gateways = value;
+            let svgContainerElement = $('#inverter_panel')[0];
+            let svgCloneableGatewayElement = $('#gatewayDetails')[0];
+            let gatewayOffsetAddition = 78;
+            let gatewayIndex = -1;
+
+            // On first load, render the gateway panel
+            if (!me.gatewayRendered) {
+                gateways.forEach(gateway => {
+                    let svgClonedElement = svgCloneableGatewayElement.cloneNode(true);
+                    svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
+                    svgClonedElement.setAttribute('style', '');
+                    svgClonedElement.setAttribute('id', `gateway_${++ gatewayIndex}`);
+
+                    svgContainerElement.appendChild(svgClonedElement);
+
+                    me.summaryOffsetY = me.summaryOffsetY + gatewayOffsetAddition;
+                })
+
+                me.gatewayRendered = true;
+            }
+
+            gatewayIndex = -1;
+
+            gateways.forEach(gateway => {
+                gatewayIndex ++;
+
+                let modeEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_mode`);
+                modeEl.text(gateway.data.gatewayMode);
+
+                let stateEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_state`);
+                stateEl.text(gateway.data.gatewayState);
+            });
+        } else if (sensor.type === SensorType.Summary
             && sensor.id === 'Inverter_Details'
             && Array.isArray(value)
             && me.showAdvancedInfo) {
@@ -388,7 +476,6 @@ class App {
             let svgCloneableInverterElement = $('#inverterDetails')[0];
             let svgCloneableBatteryElement = $('#batteryDetails')[0];
             let offsetX = 0;
-            let offsetY = 3;
             let inverterOffsetAddition = 116;
             let batteryOffsetX = 65;
             let batteryOffsetYAddition = 36;
@@ -397,10 +484,10 @@ class App {
             let inverterIndex = -1;
 
             // On first load, render the battery statistics panels
-            if (!me.rendered) {
+            if (!me.inverterRendered) {
                 inverters.forEach(inverter => {
                     let svgClonedElement = svgCloneableInverterElement.cloneNode(true);
-                    svgClonedElement.setAttribute('transform', `translate(0, ${offsetY})`);
+                    svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
                     svgClonedElement.setAttribute('style', '');
                     svgClonedElement.setAttribute('id', `inverter_${++ inverterIndex}`);
 
@@ -410,7 +497,7 @@ class App {
                     inverterNameEl.text(`Inverter (${inverter.name})`);
 
                     offsetX = batteryPanelStartingPositionX;
-                    offsetY = offsetY + inverterOffsetAddition;
+                    me.summaryOffsetY = me.summaryOffsetY + inverterOffsetAddition;
 
                     // Reverse the batteries, so we draw the last battery to the right side first
                     let batteries = inverter.batteries.reverse();
@@ -419,7 +506,7 @@ class App {
                     // The number of batteries can vary, so iterate over each battery
                     for (let battery in batteries) {
                         let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
-                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, ${me.summaryOffsetY})`);
                         svgClonedElement.setAttribute('style', '');
                         svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${-- batteryIndex}`);
 
@@ -432,10 +519,10 @@ class App {
                     inverter.batteries.reverse();
 
                     offsetX = 0;
-                    offsetY = offsetY + batteryOffsetYAddition + spacer;
+                    me.summaryOffsetY = me.summaryOffsetY + batteryOffsetYAddition + spacer;
                 })
 
-                me.rendered = true;
+                me.inverterRendered = true;
             }
 
             inverterIndex = -1;
@@ -599,9 +686,9 @@ class App {
             me.updateTime();
         }
 
-        if (me.processedData && me.processedData['Last_Updated_Time']) {
+        if (me.processedInverterData && me.processedInverterData['Last_Updated_Time']) {
             const refreshIntervalText = $('#refreshIntervalText');
-            const dateUpdated = new Date(me.processedData['Last_Updated_Time']);
+            const dateUpdated = new Date(me.processedInverterData['Last_Updated_Time']);
 
             if (isNaN(dateUpdated.getTime())) {
                 refreshIntervalText.text(`Error: Invalid response, trying again...`);
@@ -624,8 +711,8 @@ class App {
     downloadInverterData() {
         var me = this;
 
-        me.cachedData.forEach((cachedDataItem, index) => {
-            const jsonStr = JSON.stringify(cachedDataItem.data, null, 2);
+        me.cachedInverterData.forEach((cachedInverterDataItem, index) => {
+            const jsonStr = JSON.stringify(cachedInverterDataItem.data, null, 2);
 
             const blob = new Blob([jsonStr], { type: 'application/json' });
 

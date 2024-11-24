@@ -6,13 +6,29 @@ class Helpers {
      * @returns {*} The value of the nested object
      */
     static getPropertyValueFromMapping(obj, mapping) {
-        let properties = mapping.split('.');
+        // Mapping could be a single string, or an array of strings (where we need to find a mapping that exists).
+        // This is because the mappings may differ between GivTCP v2 and v3, so we need to search multiple possible mappings.
+        const mappings = Array.isArray(mapping) ? mapping : [mapping];
 
-        for (let i in properties) {
-            obj = obj[properties[i]];
+        for (const map of mappings) {
+            let currentObj = obj;
+            const properties = map.split('.');
+
+            for (const property of properties) {
+                if (currentObj && property in currentObj) {
+                    currentObj = currentObj[property];
+                } else {
+                    currentObj = undefined;
+                    break;
+                }
+            }
+
+            if (currentObj !== undefined) {
+                return currentObj;
+            }
         }
 
-        return obj;
+        return undefined;
     }
 
     /**
@@ -32,7 +48,9 @@ class Helpers {
         }
 
         Object.keys(batteriesObject).forEach(key => {
-            if (typeof batteriesObject[key] === 'object' && batteriesObject[key] !== null) {
+            if (typeof batteriesObject[key] === 'object'
+                && batteriesObject[key] !== null
+                && batteriesObject[key].Battery_SOC) {
                 filtered[key] = batteriesObject[key];
             }
         });

@@ -2,9 +2,17 @@ import { CombinatorType, Prefix, SensorType, Suffix } from './enums.js';
 import { Converters } from './converters.js';
 import { Formatters } from './formatters.js';
 
-const Sensors = [{
+const GatewaySensors = [{
+    id: 'Gateway_Details',
+    type: SensorType.Summary
+}];
+
+const InverterSensors = [{
     id: 'Last_Updated_Time',
-    mapping: 'Stats.Last_Updated_Time',
+    mapping: [
+        'Last_Updated_Time',
+        'Stats.Last_Updated_Time'
+    ],
     combinator: {
         singlePhaseSingleInverter: CombinatorType.EarliestDate,
         singlePhaseMultipleInverters: CombinatorType.EarliestDate,
@@ -369,4 +377,4 @@ const Sensors = [{
     }
 }];
 
-export { Sensors };
+export { GatewaySensors, InverterSensors };
