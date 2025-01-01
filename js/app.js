@@ -139,6 +139,7 @@ class App {
                     && data.raw.invertor.serial_number) {
                     const serialNumber = data.raw.invertor.serial_number;
 
+                    // If the device is a Gateway, add it to the Gateway data instead of the Inverter data
                     if (serialNumber.startsWith('GW')) {
                         target = me.cachedGatewayData;
                     }
@@ -155,6 +156,10 @@ class App {
         Promise.all(fetchPromises).then(() => {
             me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
 
+            if (me.cachedInverterData.length === 1) {
+                me.singleInverter = true;
+            }
+
             me.onResponse();
         });
     }
@@ -164,10 +169,27 @@ class App {
      */
     onResponse() {
         const me = this;
+        const refreshIntervalText = $('#refreshIntervalText');
 
         if (me.cachedInverterData.length === 0) {
-            const refreshIntervalText = $('#refreshIntervalText');
             refreshIntervalText.text(`Error: No inverter data, trying again...`);
+            return;
+        }
+
+        let phases = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.num_phases');
+
+        // `num_phases` can still be zero in GivTCP when we are dealing with a 3-phase inverter,
+        // so attempt to fix that here by also checking the model name (it may contain "3ph").
+        const model = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.model');
+
+        if (typeof model === 'string' && model.includes('3ph')) {
+            phases = 3;
+        }
+
+        me.singlePhase = phases === 0;
+
+        if (!me.singlePhase) {
+            refreshIntervalText.text(`Error: Three-phase inverters are currently not supported.`);
             return;
         }
 
@@ -177,8 +199,11 @@ class App {
         me.processedGatewayData = {};
         me.processedInverterData = {};
 
-        const phases = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.num_phases');
-        me.singlePhase = phases === 0;
+        me.cachedInverterData.forEach((cachedRecord, index) => {
+            // Along with the unified/calculated inverter data we store under `processedInverterData`, we also store each
+            // inverter's data in its own object (for summarising within the inverter details panel).
+            me.processedInverterData[index] = {};
+        });
 
         if (me.debugMode) {
             console.log('Single phase: ', me.singlePhase);
@@ -198,19 +223,23 @@ class App {
                     combinator = sensor.combinator.multiplePhases;
                 }
 
+                me.cachedInverterData.forEach((cachedRecord, index) => {
+                    me.processedInverterData[index][sensor.id] = Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                });
+
                 if (combinator === CombinatorType.Addition) {
                     value = 0;
 
-                    me.cachedInverterData.forEach((cachedRecord) => {
-                        value += Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                    me.cachedInverterData.forEach((cachedRecord, index) => {
+                        value += me.processedInverterData[index][sensor.id];
                     });
                 } else if (combinator === CombinatorType.Any) {
-                    value = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, sensor.mapping);
+                    value = me.processedInverterData[0][sensor.id];
                 } else if (combinator === CombinatorType.Average) {
                     let numbers = [];
 
-                    me.cachedInverterData.forEach((cachedRecord) => {
-                        numbers.push(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping));
+                    me.cachedInverterData.forEach((cachedRecord, index) => {
+                        numbers.push(me.processedInverterData[index][sensor.id]);
                     });
 
                     let sum = numbers.reduce((a, b) => a + b, 0);
@@ -218,8 +247,8 @@ class App {
                 } else if (combinator === CombinatorType.EarliestDate) {
                     let dates = [];
 
-                    me.cachedInverterData.forEach((cachedRecord) => {
-                        dates.push(new Date(Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping)));
+                    me.cachedInverterData.forEach((cachedRecord, index) => {
+                        dates.push(new Date(me.processedInverterData[index][sensor.id]));
                     });
 
                     value = new Date(Math.min.apply(null, dates));
@@ -321,14 +350,12 @@ class App {
             } else if (sensor.id === 'Inverter_Details') {
                 let inverters = [];
 
-                me.cachedInverterData.forEach((cachedRecord) => {
-                    let batteryArray = Helpers.getBatteriesFromInverter(
-                        Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Battery_Details')
-                    );
+                me.cachedInverterData.forEach((cachedRecord, index) => {
+                    let batteryArray = Helpers.getBatteriesFromInverter(inverterData[index].Battery_Details);
 
                     inverters.push({
                         name: cachedRecord.name,
-                        data: inverterData,
+                        data: inverterData[index],
                         rawData: cachedRecord.data,
                         batteries: batteryArray
                     });
@@ -349,7 +376,7 @@ class App {
     }
 
     /**
-     * This takes an individual sensor data object and based on its type (power usage, power flow, summary), and
+     * This takes an individual sensor data object and based on its type (power usage, power flow, summary),
      * renders it within the appropriate point in the user interface
      * @param sensorData An individual sensor data object
      */
@@ -430,7 +457,7 @@ class App {
         } else if (sensor.type === SensorType.Power) {
             arrow = 'line-arrow';
             group = element.parent().parent();
-            element.text(Formatters.sensorValue(value, sensor));
+            element.text(Formatters.sensorValue(value, sensor, true, true));
 
             if (group.children('line').length > 0) {
                 line = group.children('line')[0];
@@ -459,9 +486,8 @@ class App {
                 })
 
                 me.gatewayRendered = true;
+                gatewayIndex = -1;
             }
-
-            gatewayIndex = -1;
 
             gateways.forEach(gateway => {
                 gatewayIndex ++;
@@ -525,9 +551,8 @@ class App {
                 })
 
                 me.inverterRendered = true;
+                inverterIndex = -1;
             }
-
-            inverterIndex = -1;
 
             // Now populate or update the values being shown in the inverter and battery statistics panels
             inverters.forEach(inverter => {
@@ -536,26 +561,18 @@ class App {
                 let batteryIndex = -1;
 
                 let stateOfChargeEl = $(`#inverter_${inverterIndex} >> tspan.inverter_soc`);
-                stateOfChargeEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.SOC'), {
-                    suffix: Suffix.Percent,
-                    formatter: Formatters.roundToWholeNumber
-                }));
+                stateOfChargeEl.text(Formatters.sensorValue(inverter.data.Battery_State_of_Charge, Helpers.getSensorById('Battery_State_of_Charge')));
 
                 let solarPowerEl = $(`#inverter_${inverterIndex} >> tspan.solar_power`);
-                solarPowerEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.PV_Power'), {
-                    converter: Converters.wattsToKw,
-                    suffix: Suffix.Power
-                }));
+                solarPowerEl.text(Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power')));
 
                 let targetChargeEl = $(`#inverter_${inverterIndex} >> tspan.target_soc`);
-                targetChargeEl.text(Formatters.sensorValue(Helpers.getPropertyValueFromMapping(inverter.rawData, 'Control.Target_SOC'), {
-                    suffix: Suffix.Percent
-                }));
+                targetChargeEl.text(Formatters.sensorValue(inverter.data.Battery_Target_State_of_Charge, Helpers.getSensorById('Battery_Target_State_of_Charge')));
 
                 let inverterStatus = 'Batteries Idle';
                 let inverterRate = null;
-                let chargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Charge_Power');
-                let dischargeRate = Helpers.getPropertyValueFromMapping(inverter.rawData, 'Power.Power.Discharge_Power');
+                let chargeRate = inverter.data.Charge_Power;
+                let dischargeRate = inverter.data.Discharge_Power;
 
                 if (dischargeRate > 0) {
                     inverterStatus = 'Discharging';

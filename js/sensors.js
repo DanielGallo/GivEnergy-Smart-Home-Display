@@ -20,7 +20,10 @@ const InverterSensors = [{
     }
 }, {
     id: 'Charge_Power',
-    mapping: 'Power.Power.Charge_Power',
+    mapping: [
+        'Power.Power.Charge_Power',
+        'Power.Power.Battery_Charge_Power'
+    ],
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
         singlePhaseMultipleInverters: CombinatorType.Addition,
@@ -28,7 +31,10 @@ const InverterSensors = [{
     }
 }, {
     id: 'Discharge_Power',
-    mapping: 'Power.Power.Discharge_Power',
+    mapping: [
+        'Power.Power.Discharge_Power',
+        'Power.Power.Battery_Discharge_Power'
+    ],
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
         singlePhaseMultipleInverters: CombinatorType.Addition,
@@ -56,7 +62,10 @@ const InverterSensors = [{
     }
 }, {
     id: 'Grid_Power',
-    mapping: 'Power.Power.Grid_Power',
+    mapping: [
+        'Power.Power.Grid_Power',
+        'Power.Power.Grid_Apparent_Power'
+    ],
     type: SensorType.Power,
     nonZeroValueCheck: [
         'Solar_to_Grid',
@@ -78,6 +87,7 @@ const InverterSensors = [{
     type: SensorType.Power,
     textElementId: 'power_solar_text',
     converter: Converters.wattsToKw,
+    suffix: Suffix.Power,
     forceRefresh: true,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
@@ -90,6 +100,7 @@ const InverterSensors = [{
     type: SensorType.Power,
     textElementId: 'power_battery_text',
     converter: Converters.wattsToKw,
+    suffix: Suffix.Power,
     forceRefresh: true,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
@@ -271,6 +282,16 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Average
     }
 }, {
+    id: 'Battery_Target_State_of_Charge',
+    mapping: 'Control.Target_SOC',
+    formatter: Formatters.roundToWholeNumber,
+    suffix: Suffix.Percent,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Average,
+        multiplePhases: CombinatorType.Average
+    }
+}, {
     id: 'daily_energy_cost_peak',
     mapping: 'Energy.Rates.Day_Cost',
     textElementId: 'energy_imported_peak_cost_text',
@@ -323,7 +344,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Battery_Statistics',
+    id: 'Battery_Details',
     mapping: 'Battery_Details',
     type: SensorType.Summary,
     combinator: {

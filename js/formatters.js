@@ -1,11 +1,14 @@
 class Formatters {
     /**
-     * Formats a value based on the properties defined on the sensor
-     * @param value The value to format
-     * @param sensor The sensor object
-     * @returns {string} Formatted value
+     * Formats a value based on the properties defined on the sensor.
+     *
+     * @param {any} value - The raw value from the sensor to format.
+     * @param {Object} sensor - The sensor configuration object which may include converter, formatter, prefix, and suffix.
+     * @param {boolean} [ignorePrefix=false] - A flag indicating whether to ignore adding the prefix.
+     * @param {boolean} [ignoreSuffix=false] - A flag indicating whether to ignore adding the suffix.
+     * @return {string} The formatted sensor value as a string.
      */
-    static sensorValue(value, sensor) {
+    static sensorValue(value, sensor, ignorePrefix = false, ignoreSuffix = false) {
         const me = this;
         let text = value;
 
@@ -20,12 +23,12 @@ class Formatters {
         }
 
         // Add any prefix
-        if (sensor.prefix) {
+        if (sensor.prefix && !ignorePrefix) {
             text = `${sensor.prefix}${text}`;
         }
 
         // Add any suffix
-        if (sensor.suffix) {
+        if (sensor.suffix && !ignoreSuffix) {
             text = `${text}${sensor.suffix}`;
         }
 

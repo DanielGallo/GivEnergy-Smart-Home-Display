@@ -1,3 +1,5 @@
+import {InverterSensors} from "./sensors.js";
+
 class Helpers {
     /**
      * Traverses a nested object by processing a dot-delimited string
@@ -58,6 +60,16 @@ class Helpers {
         return Object.keys(filtered).map(function(key) {
             return filtered[key];
         });
+    }
+
+    /**
+     * Retrieves a sensor object by its unique identifier.
+     *
+     * @param {string} id - The unique identifier of the sensor to retrieve.
+     * @return {Object|undefined} The sensor object matching the id, or undefined if not found.
+     */
+    static getSensorById(id) {
+        return InverterSensors.find(sensor => sensor.id === id);
     }
 }
 
