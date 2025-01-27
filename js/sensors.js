@@ -371,17 +371,26 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Discharge_Power',
-    mapping: 'Power.Power.Discharge_Power',
+    id: 'Import_Power',
+    mapping: 'Power.Power.Import_Power',
     converter: Converters.wattsToKw,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
-        singlePhaseMultipleInverters: CombinatorType.Addition,
+        singlePhaseMultipleInverters: CombinatorType.Any,
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Import_Power',
-    mapping: 'Power.Power.Import_Power',
+    id: 'Meter_Import_Power',
+    mapping: 'Power.Power.Meter_Import_Power',
+    converter: Converters.wattsToKw,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Addition
+    }
+}, {
+    id: 'Meter_Export_Power',
+    mapping: 'Power.Power.Meter_Export_Power',
     converter: Converters.wattsToKw,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,

@@ -70,7 +70,7 @@ class App {
                 me.solarRate = data.solarRate;
                 me.exportRate = data.exportRate;
 
-                if (me.givTcpHosts != null && me.solarRate != null && me.exportRate != null) {
+                if (me.givTcpHosts !== null && me.solarRate !== null && me.exportRate !== null) {
                     if (me.givTcpHosts.length > 1) {
                         me.singleInverter = false;
                     }
@@ -133,11 +133,12 @@ class App {
                 return response.json();
             }).then(data => {
                 let target = me.cachedInverterData;
+                let serialNumber = null;
 
                 if (data.raw
                     && data.raw.invertor
                     && data.raw.invertor.serial_number) {
-                    const serialNumber = data.raw.invertor.serial_number;
+                    serialNumber = data.raw.invertor.serial_number;
 
                     // If the device is a Gateway, add it to the Gateway data instead of the Inverter data
                     if (serialNumber.startsWith('GW')) {
@@ -148,7 +149,8 @@ class App {
                 target.push({
                     name: givTcpHost.name,
                     sortOrder: givTcpHost.sortOrder,
-                    data: data
+                    data: data,
+                    serialNumber: serialNumber
                 });
             });
         });
@@ -176,22 +178,7 @@ class App {
             return;
         }
 
-        let phases = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.num_phases');
-
-        // `num_phases` can still be zero in GivTCP when we are dealing with a 3-phase inverter,
-        // so attempt to fix that here by also checking the model name (it may contain "3ph").
-        const model = Helpers.getPropertyValueFromMapping(me.cachedInverterData[0].data, 'raw.invertor.model');
-
-        if (typeof model === 'string' && model.includes('3ph')) {
-            phases = 3;
-        }
-
-        me.singlePhase = phases === 0;
-
-        if (!me.singlePhase) {
-            refreshIntervalText.text(`Error: Three-phase inverters are currently not supported.`);
-            return;
-        }
+        me.singlePhase = !Helpers.isThreePhaseInverter(me.cachedInverterData[0]);
 
         me.updateRefreshIntervalText();
         setInterval(me.updateRefreshIntervalText.bind(me), 1000);
@@ -208,6 +195,123 @@ class App {
         if (me.debugMode) {
             console.log('Single phase: ', me.singlePhase);
             console.log('Single inverter: ', me.singleInverter);
+        }
+
+        if (!me.singlePhase) {
+            me.cachedInverterData.forEach((cachedRecord, index) => {
+                // 3-phase inverters don't return power flows for some reason (e.g. Solar to Battery, Grid to
+                // Battery, etc), so attempt to calculate these values manually and apply it to the cached data
+                // returned from GivTCP, so the app can then attempt to show these flows.
+                if (Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Power.Flows') === undefined) {
+                    let baseData = {};
+
+                    InverterSensors.forEach((sensor) => {
+                        if (sensor.mapping) {
+                            baseData[sensor.id] = Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                        }
+                    });
+
+                    // The "meter" values appear to be more accurate, and also reflect any actual export
+                    cachedRecord.data.Power.Power.Import_Power = baseData.Meter_Import_Power;
+                    cachedRecord.data.Power.Power.Export_Power = baseData.Meter_Export_Power;
+                    baseData.Export_Power = baseData.Meter_Export_Power;
+
+                    if (baseData.Meter_Import_Power > 0) {
+                        baseData.Grid_Power = baseData.Meter_Import_Power * -1;
+                        cachedRecord.data.Power.Power.Grid_Power = baseData.Meter_Import_Power * -1;
+                    } else {
+                        baseData.Grid_Power = baseData.Meter_Export_Power;
+                        cachedRecord.data.Power.Power.Grid_Power = baseData.Meter_Export_Power;
+                    }
+
+                    // Battery_Power doesn't appear to be included in 3-phase Power values, so set it
+                    if (baseData.Charge_Power > 0) {
+                        cachedRecord.data.Power.Power.Battery_Power = baseData.Charge_Power * -1;
+                    } else {
+                        cachedRecord.data.Power.Power.Battery_Power = baseData.Discharge_Power;
+                    }
+
+                    let batteryToGrid = 0;
+                    let batteryToHouse = 0;
+                    let gridToBattery = 0;
+                    let gridToHouse = 0;
+                    let solarToBattery = 0;
+                    let solarToGrid = 0;
+                    let solarToHouse = 0;
+
+                    // Remaining power variables for tracking
+                    let remainingSolar = baseData.PV_Power;
+                    let remainingGrid = baseData.Grid_Power;
+                    let remainingLoad = baseData.Load_Power;
+
+                    // Supply the house load first
+                    if (remainingSolar >= remainingLoad) {
+                        solarToHouse = remainingLoad;
+                        remainingSolar -= remainingLoad;
+                        remainingLoad = 0;
+                    } else {
+                        solarToHouse = remainingSolar;
+                        remainingLoad -= remainingSolar;
+                        remainingSolar = 0;
+                    }
+
+                    if (remainingLoad > 0 && baseData.Discharge_Power > 0) {
+                        // Battery discharges to supply the remaining house load
+                        if (baseData.Discharge_Power >= remainingLoad) {
+                            batteryToHouse = remainingLoad;
+                            remainingLoad = 0;
+                        } else {
+                            batteryToHouse = baseData.Discharge_Power;
+                            remainingLoad -= baseData.Discharge_Power;
+                        }
+                    }
+
+                    if (remainingLoad > 0 && remainingGrid > 0) {
+                        // Grid supplies the remaining house load
+                        if (remainingGrid >= remainingLoad) {
+                            gridToHouse = remainingLoad;
+                            remainingGrid -= remainingLoad;
+                            remainingLoad = 0;
+                        } else {
+                            gridToHouse = remainingGrid;
+                            remainingLoad -= remainingGrid;
+                            remainingGrid = 0;
+                        }
+                    }
+
+                    if (baseData.Charge_Power > 0) {
+                        if (remainingSolar >= baseData.Charge_Power) {
+                            solarToBattery = baseData.Charge_Power;
+                            remainingSolar -= baseData.Charge_Power;
+                        } else {
+                            solarToBattery = remainingSolar;
+                            remainingSolar = 0;
+                            gridToBattery = baseData.Charge_Power - solarToBattery;
+                        }
+                    }
+
+                    if (remainingSolar > 0) {
+                        solarToGrid = remainingSolar;
+                        remainingSolar = 0;
+                    }
+
+                    if (baseData.Discharge_Power > batteryToHouse) {
+                        batteryToGrid = baseData.Discharge_Power - batteryToHouse;
+                    }
+
+                    let flows = {
+                        Battery_to_Grid: batteryToGrid,
+                        Battery_to_House: batteryToHouse,
+                        Grid_to_Battery: gridToBattery,
+                        Grid_to_House: gridToHouse,
+                        Solar_to_Battery: solarToBattery,
+                        Solar_to_Grid: solarToGrid,
+                        Solar_to_House: solarToHouse
+                    };
+
+                    cachedRecord.data.Power.Flows = flows;
+                }
+            });
         }
 
         InverterSensors.forEach((sensor) => {
@@ -320,20 +424,30 @@ class App {
 
                 value = loadPower;
 
-                if (inverterData.Battery_to_House === 0 && inverterData.Solar_to_House === 0 && inverterData.Grid_to_House === 0 && inverterData.Solar_to_Grid > 10) {
+                if (inverterData.Battery_to_House === 0
+                    && inverterData.Solar_to_House === 0
+                    && inverterData.Grid_to_House === 0
+                    && inverterData.Solar_to_Grid > 10) {
                     // With multiple inverters, if solar is the only thing powering the house,
                     // the "Solar_to_House" can be zero (along with the other flows), so ensure
                     // the "solar to house" flow line is still rendered.
                     inverterData.Solar_to_House = 10;
                 }
 
-                if (inverterData.Battery_to_House === 0 && inverterData.Grid_to_House === 0 && inverterData.Battery_to_Grid > 10) {
+                if (inverterData.Battery_to_House === 0
+                    && inverterData.Grid_to_House === 0
+                    && inverterData.Battery_to_Grid > 10) {
                     // If multiple inverters are exporting, ensure the flow line from the battery to the
                     // house is still flowing.
                     inverterData.Battery_to_House = 10;
                 }
 
-                if (inverterData.Charge_Power > 0 && inverterData.Solar_to_House > 0 && inverterData.Solar_to_Grid > 0 && inverterData.Solar_to_Battery === 0 && inverterData.Grid_to_House === 0) {
+                if (inverterData.Charge_Power > 0
+                    && inverterData.Solar_to_House > 0
+                    && inverterData.Solar_to_Grid > 0
+                    && inverterData.PV_Power > 10
+                    && inverterData.Solar_to_Battery === 0
+                    && inverterData.Grid_to_House === 0) {
                     // With multiple inverters on a single phase, when solar is fully powering the house, exporting,
                     // and charging the batteries, there's no flow between solar and batteries. Force this flow to be
                     // rendered.
@@ -582,7 +696,7 @@ class App {
                     inverterRate = chargeRate;
                 }
 
-                if (inverterRate != null) {
+                if (inverterRate !== null) {
                     inverterStatus += ' ' + Formatters.sensorValue(inverterRate, {
                         converter: Converters.wattsToKw,
                         suffix: Suffix.Power
