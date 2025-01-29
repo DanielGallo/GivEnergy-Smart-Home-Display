@@ -8,6 +8,7 @@ class App {
     constructor() {
         const me = this;
 
+        me.fetchInterval = null;
         me.givTcpHosts = null;
         me.solarRate = null;
         me.exportRate = null;
@@ -48,6 +49,24 @@ class App {
             $('#debugPanel').show();
             console.log('Debug mode enabled.');
         }
+
+        // Handle visibility changes to pause/resume fetching
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden" && me.fetchInterval) {
+                clearInterval(me.fetchInterval);
+                me.fetchInterval = null;
+
+                if (me.debugMode) {
+                    console.log("Paused data fetching due to tab being hidden.");
+                }
+            } else if (document.visibilityState === "visible" && !me.fetchInterval) {
+                me.launch(); // Relaunch fetch when tab is visible again
+
+                if (me.debugMode) {
+                    console.log("Resumed data fetching as tab is visible.");
+                }
+            }
+        });
 
         // For debugging purposes, enable inverter data to be read from static JSON files
         if (sampleData) {
@@ -96,12 +115,17 @@ class App {
     launch() {
         const me = this;
 
+        // Clear existing interval if it exists
+        if (me.fetchInterval) {
+            clearInterval(me.fetchInterval);
+        }
+
         // Get the initial set of data
         me.fetchData();
 
         if (me.useSampleData === false) {
             // Fetch the data from GivTCP every 8 seconds
-            setInterval(me.fetchData.bind(me), 8000);
+            me.fetchInterval = setInterval(me.fetchData.bind(me), 8000);
         }
     }
 
@@ -110,6 +134,13 @@ class App {
      */
     fetchData() {
         const me = this;
+
+        // Skip if a fetch operation is already in progress
+        if (me.fetching) {
+            return;
+        }
+        me.fetching = true;
+
         me.cachedGatewayData = [];
         me.cachedInverterData = [];
         me.processedGatewayData = {};
@@ -155,15 +186,19 @@ class App {
             });
         });
 
-        Promise.all(fetchPromises).then(() => {
-            me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
+        Promise.all(fetchPromises)
+            .then(() => {
+                me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
 
-            if (me.cachedInverterData.length === 1) {
-                me.singleInverter = true;
-            }
+                if (me.cachedInverterData.length === 1) {
+                    me.singleInverter = true;
+                }
 
-            me.onResponse();
-        });
+                me.onResponse();
+            })
+            .finally(() => {
+                me.fetching = false;
+            });
     }
 
     /**

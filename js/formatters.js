@@ -36,14 +36,26 @@ class Formatters {
     }
 
     static roundToOneDecimalPlace(value) {
+        if(isNaN(value)) {
+            value = 0.0;
+        }
+
         return value.toFixed(1);
     }
 
     static roundToWholeNumber(value) {
+        if(isNaN(value)) {
+            value = 0.0;
+        }
+
         return value.toFixed(0);
     }
 
     static renderLargeNumber(value) {
+        if(isNaN(value)) {
+            value = 0.0;
+        }
+
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 }

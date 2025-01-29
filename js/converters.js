@@ -18,6 +18,10 @@ class Converters {
      * @returns {string} Converted currency value to 2 decimal places
      */
     static numberToCurrency(str) {
+        if(isNaN(parseFloat(str))) {
+            str = 0.0;
+        }
+
         let value = parseFloat(str);
 
         value = value.toFixed(2);
