@@ -680,14 +680,21 @@ class App {
                     let batteries = inverter.batteries.reverse();
                     let batteryIndex = batteries.length;
 
+                    // Scale batteries down proportionally when more than 3, so they fit on one row
+                    let batteryScale = Math.min(1, 3 / batteries.length);
+                    let batteryShift = batteryPanelStartingPositionX * (1 - batteryScale);
+                    let batteryGroupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    batteryGroupElement.setAttribute('transform', `translate(${batteryShift}, ${me.summaryOffsetY}) scale(${batteryScale})`);
+                    svgContainerElement.appendChild(batteryGroupElement);
+
                     // The number of batteries can vary, so iterate over each battery
                     for (let battery in batteries) {
                         let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
-                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, ${me.summaryOffsetY})`);
+                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, 0)`);
                         svgClonedElement.setAttribute('style', '');
                         svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${-- batteryIndex}`);
 
-                        svgContainerElement.appendChild(svgClonedElement);
+                        batteryGroupElement.appendChild(svgClonedElement);
 
                         offsetX = offsetX - batteryOffsetX;
                     }
