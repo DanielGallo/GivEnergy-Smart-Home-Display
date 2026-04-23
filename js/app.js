@@ -396,6 +396,8 @@ class App {
         if (me.hasEvc) {
             me.renderEvc();
         }
+
+        me.scaleSummaryPanels();
     }
 
     /**
@@ -886,6 +888,25 @@ class App {
                 $('#panels')[0].setAttribute('transform', 'translate(-370, 510), scale(1.28)');
             }
         }
+
+        me.scaleSummaryPanels();
+    }
+
+    scaleSummaryPanels() {
+        const me = this;
+
+        if (!me.showAdvancedInfo || !me.inverterRendered) return;
+
+        const isLandscape = document.body.clientWidth > document.body.clientHeight;
+        const panelOriginY = 19;
+        // Portrait: the original layout had ~5px of imperceptible overflow for 2 inverters.
+        // Adding that tolerance back prevents unnecessary scaling in the 2-inverter case.
+        const availableHeight = isLandscape
+            ? 375 - panelOriginY - 10
+            : (880 - 510) / 1.07 - panelOriginY + 5;
+
+        const scale = Math.min(1, availableHeight / me.summaryOffsetY);
+        $('#inverter_panel')[0].setAttribute('transform', `translate(610, ${panelOriginY}) scale(${scale})`);
     }
 
     /**
