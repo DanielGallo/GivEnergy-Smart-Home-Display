@@ -34,12 +34,12 @@ g.idle path.graphic {
 
 g.idle path.connector {
     stroke: #313131;
-    stroke-width: 2;
+    stroke-width: 1.8;
 }
 
 g.active path.connector, g.active line.connector {
     stroke: #808080;
-    stroke-width: 2;
+    stroke-width: 1.8;
 }
 
 marker path.connector {
@@ -73,14 +73,22 @@ text.overdue {
     font-size: 14pt;
 }
 
+#power_evc text {
+    font-size: 70%;
+}
+
 tspan.label, text.label {
     fill: rgb(163, 163, 163);
     font-weight: normal;
     font-size: 100%;
 }
 
+tspan.batterylabel {
+    font-size: 75%;
+}
+
 #summary_panel path {
-    stroke-width: 2;
+    stroke-width: 1.4;
 }
 
 .idle text {
@@ -92,11 +100,11 @@ tspan.label, text.label {
 }
 
 .active circle {
-    stroke-width: 2;
+    stroke-width: 1.4;
 }
 
 .graphic {
-    stroke-width: 2;
+    stroke-width: 1.4;
     stroke-linejoin: round;
     stroke-linecap: round;
     fill: #1c1c1c;
@@ -106,8 +114,16 @@ tspan.label, text.label {
     stroke: #e53935;
 }
 
+#summary_panel path.graphic-grid {
+    stroke-width: 2;
+}
+
 .active circle#power_battery_circle, #power_battery.active path.graphic, #summary_panel path.graphic-battery {
     stroke: #3949ab;
+}
+
+#summary_panel path.graphic-battery {
+    stroke-width: 1.6;
 }
 
 .active circle#power_solar_circle, #power_solar.active path.graphic, #summary_panel path.graphic-solar {
@@ -116,4 +132,8 @@ tspan.label, text.label {
 
 .active circle#power_home_circle, #power_home.active path.graphic, #summary_panel path.graphic-home {
     stroke: #00897b;
+}
+
+.active circle#power_evc_circle, #power_evc.active path.graphic, #power_evc.active circle.graphic, #summary_panel path.graphic-evc {
+    stroke: #65a622;
 }

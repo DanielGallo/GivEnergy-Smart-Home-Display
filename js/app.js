@@ -23,6 +23,9 @@ class App {
         me.singlePhase = true;
         me.singleInverter = true;
         me.summaryOffsetY = 3;
+        me.hasEvc = false;
+        me.cachedEvcData = null;
+        me.evcRendered = false;
 
         // Generate URL to GivTCP based on current URL of web app
         let baseUrl = window.location.protocol + '//' + window.location.hostname;
@@ -107,6 +110,9 @@ class App {
 
         // Do an initial layout check when first loading
         me.resizeCanvas();
+
+        // Hide EVC elements until presence is confirmed by the first data fetch
+        me.renderEvcVisibility();
     }
 
     /**
@@ -145,6 +151,7 @@ class App {
         me.cachedInverterData = [];
         me.processedGatewayData = {};
         me.processedInverterData = {};
+        me.cachedEvcData = null;
 
         let fetchPromises = me.givTcpHosts.map((givTcpHost, index) => {
             let fetchUrl = `${me.baseUrl}:${givTcpHost.port}/readData`;
@@ -186,7 +193,36 @@ class App {
             });
         });
 
-        Promise.all(fetchPromises)
+        // Fetch EVC data alongside inverter data — a missing file (sample mode) or 500 (live mode, no EVC fitted)
+        // both resolve with null rather than rejecting, so a missing EVC never blocks inverter rendering.
+        let evcFetchUrl;
+        if (me.useSampleData) {
+            let port = window.location.port;
+            evcFetchUrl = `${me.baseUrl}:${port}/data_samples/${me.sampleDataName}/evc.json`;
+        } else {
+            evcFetchUrl = `${me.baseUrl}/getEVCCache`;
+        }
+
+        const evcFetchPromise = fetch(evcFetchUrl, {
+            mode: 'cors',
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return null;
+            }
+            return response.json();
+        })
+        .then(data => {
+            me.cachedEvcData = data;
+        })
+        .catch(() => {
+            me.cachedEvcData = null;
+        });
+
+        Promise.all([...fetchPromises, evcFetchPromise])
             .then(() => {
                 me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -522,6 +558,13 @@ class App {
                 });
             }
         });
+
+        me.hasEvc = (me.cachedEvcData !== null && me.cachedEvcData !== undefined && me.cachedEvcData.Charger !== undefined);
+        me.renderEvcVisibility();
+
+        if (me.hasEvc) {
+            me.renderEvc();
+        }
     }
 
     /**
@@ -802,6 +845,85 @@ class App {
                     debugEl.text(value);
                 }
             }
+        }
+    }
+
+    renderEvcVisibility() {
+        const me = this;
+
+        if (me.hasEvc) {
+            $('#power_evc').show();
+            $('#home_to_evc').show();
+        } else {
+            $('#power_evc').hide();
+            $('#home_to_evc').hide();
+        }
+    }
+
+    renderEvc() {
+        const me = this;
+        const charger = me.cachedEvcData.Charger;
+
+        let activePowerW = charger.Active_Power ?? 0;
+        let maxChargeCurrent = charger.Charge_Limit ?? 0;
+
+        if (activePowerW < 10) {
+            activePowerW = 0;
+        }
+
+        const activePowerKw = activePowerW / 1000;
+
+        // Power circle
+        const evcTextEl = $('#power_evc_text');
+        const evcGroup = $('#power_evc');
+
+        evcTextEl.text(activePowerKw.toFixed(2));
+
+        if (activePowerW > 0) {
+            evcGroup.removeClass('idle').addClass('active');
+        } else {
+            evcGroup.removeClass('active').addClass('idle');
+        }
+
+        // Flow line
+        const flowGroup = $('#home_to_evc');
+        const flowLine = flowGroup.children('line')[0];
+
+        if (activePowerW > 0) {
+            flowLine.setAttribute('marker-end', 'url(#line-arrow-evc)');
+
+            // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
+            let newLine = flowLine.cloneNode(true);
+            flowLine.parentNode.replaceChild(newLine, flowLine);
+
+            flowGroup.removeClass('idle').addClass('active');
+        } else {
+            flowLine.setAttribute('marker-end', '');
+            flowGroup.removeClass('active').addClass('idle');
+        }
+
+        // Summary panel
+        if (me.showAdvancedInfo) {
+            const svgContainerElement = $('#inverter_panel')[0];
+
+            if (!me.evcRendered) {
+                const svgClonedElement = $('#evcDetails')[0].cloneNode(true);
+                svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
+                svgClonedElement.setAttribute('style', '');
+                svgClonedElement.setAttribute('id', 'evc_panel');
+
+                svgContainerElement.appendChild(svgClonedElement);
+
+                me.summaryOffsetY += 90;
+                me.evcRendered = true;
+            }
+
+            const sessionEnergy = charger.Charge_Session_Energy ?? 0;
+
+            $('#evc_panel >> tspan.charging_state').text(charger.Charging_State ?? '—');
+            $('#evc_panel >> tspan.charge_limit').text(`${maxChargeCurrent}A`);
+            $('#evc_panel >> tspan.active_power').text(`${activePowerKw.toFixed(2)} kW`);
+            $('#evc_panel >> tspan.charge_session_energy').text(`${sessionEnergy.toFixed(2)} kWh`);
         }
     }
 

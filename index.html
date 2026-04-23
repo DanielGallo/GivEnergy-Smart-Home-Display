@@ -59,6 +59,10 @@
                     <g id="grid_to_home" class="idle">
                         <line class="connector" x1="180" y1="140" x2="180" y2="90" stroke="#646464" stroke-width="2" transform="rotate(120 180 180)" />
                     </g>
+
+                    <g id="home_to_evc" class="idle">
+                        <line class="connector" x1="180" y1="112" x2="180" y2="140" stroke="#646464" stroke-width="2" transform="rotate(60 180 180)" />
+                    </g>
                 </g>
 
                 <!-- Solar circle -->
@@ -70,7 +74,35 @@
                     </text>
 
                     <g transform="translate(153, 9)">
-                        <path class="graphic" d="M 30 17 A 1 1 0 0 0 30 41 A 1 1 0 0 0 30 17 M 30 15 L 30 10 M 44 29 L 49 29 M 30 43 L 30 48 M 16 29 L 11 29 M 20 19 L 16 15 M 40 19 L 44 15 M 40 39 L 44 43 M 20 39 L 16 43" transform="scale(0.9)" />
+                        <path class="graphic" d="
+                            M 27 15.3
+                            A 0.9 0.9 0 0 0 27 36.9
+                            A 0.9 0.9 0 0 0 27 15.3
+
+                            M 27 13.5
+                            L 27 9
+
+                            M 39.6 26.1
+                            L 44.1 26.1
+
+                            M 27 38.7
+                            L 27 43.2
+
+                            M 14.4 26.1
+                            L 9.9 26.1
+
+                            M 18 17.1
+                            L 14.4 13.5
+
+                            M 36 17.1
+                            L 39.6 13.5
+
+                            M 36 35.1
+                            L 39.6 38.7
+
+                            M 18 35.1
+                            L 14.4 38.7
+                        " />
                     </g>
                 </g>
 
@@ -83,7 +115,7 @@
                     </text>
 
                     <g transform="translate(101, 248), rotate(180)">
-                        <path class="graphic" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9 L 25 9 L 25 22 L 20 22 L 20 9 M 28 9 L 33 9 L 33 22 L 28 22 L 28 9 M 36 9 L 41 9 L 41 22 L 36 22 L 36 9 M 44 9 L 49 9 L 49 22 L 44 22 L 44 9 M 52 9 L 57 9 L 57 22 L 52 22 L 52 9" transform="scale(0.9)" />
+                        <path class="graphic" d="M 11 9 L 15 9 L 15 19 L 11 19 L 11 9 M 15.3 5.4 L 54 5.4 L 54 22.5 L 15.3 22.5 L 15.3 5.4 M 18 8.1 L 22.5 8.1 L 22.5 19.8 L 18 19.8 L 18 8.1 M 25.2 8.1 L 29.7 8.1 L 29.7 19.8 L 25.2 19.8 L 25.2 8.1 M 32.4 8.1 L 36.9 8.1 L 36.9 19.8 L 32.4 19.8 L 32.4 8.1 M 39.6 8.1 L 44.1 8.1 L 44.1 19.8 L 39.6 19.8 L 39.6 8.1 M 46.8 8.1 L 51.3 8.1 L 51.3 19.8 L 46.8 19.8 L 46.8 8.1" />
                     </g>
                 </g>
 
@@ -95,8 +127,88 @@
                         <tspan class="circle_scale" dx="-4">kW</tspan>
                     </text>
 
-                    <g transform="translate(274, 213), scale(0.65)">
-                        <path class="graphic" d="M 27 0 L 21 12 L 33 12 L 33 12 L 27 0 M 21 12 L 18 33 L 12 54 L 42 54 L 36 33 L 33 12 M 33 12 L 42 12 L 33 18 M 21 12 L 12 12 L 21 18 L 36 33 L 12 54 M 18 33 L 42 54 M 18 33 L 33 18" />
+                    <g transform="translate(274, 213)">
+                        <path class="graphic" d="
+                            M 17.55 0
+                            L 13.65 7.8
+                            L 21.45 7.8
+                            L 21.45 7.8
+                            L 17.55 0
+
+                            M 13.65 7.8
+                            L 11.7 21.45
+                            L 7.8 35.1
+                            L 27.3 35.1
+                            L 23.4 21.45
+                            L 21.45 7.8
+
+                            M 21.45 7.8
+                            L 27.3 7.8
+                            L 21.45 11.7
+
+                            M 13.65 7.8
+                            L 7.8 7.8
+                            L 13.65 11.7
+                            L 23.4 21.45
+                            L 7.8 35.1
+
+                            M 11.7 21.45
+                            L 27.3 35.1
+
+                            M 11.7 21.45
+                            L 21.45 11.7
+                        " />
+                    </g>
+                </g>
+
+                <!-- EVC circle -->
+                <g id="power_evc" class="idle">
+                    <circle id="power_evc_circle" cx="260" cy="134" r="28" class="circle" />
+                    <text x="260" y="127" text-anchor="middle" dy="23">
+                        <tspan id="power_evc_text" class="circle_value">0.00</tspan>
+                        <tspan class="circle_scale" dx="-3">kW</tspan>
+                    </text>
+
+                    <g transform="translate(241, 110)" >
+                        <!-- ground lines -->
+                        <path class="graphic" d="M4.2 25.7H33.4"/>
+                        <path class="graphic" d="M4.2 22.05H7.75"/>
+
+                        <!-- car upper body / roof -->
+                        <path class="graphic" d="M4.3 6.75H5.95"/>
+                        <path class="graphic" d="M6.25 6.8L17.15 8.05"/>
+                        <path class="graphic" d="M15.75 7.85H17.65"/>
+
+                        <!-- rear window / roof support -->
+                        <path class="graphic" d="M6.25 6.8L4.65 10.8"/>
+                        <path class="graphic" d="M15.85 8L10.25 14.35"/>
+                        <path class="graphic" d="M4.4 14.35H10.25"/>
+
+                        <!-- car rear / charging side profile -->
+                        <path class="graphic" d="M17.4 8.1Q16.65 9.15 17.95 10.6L19.2 12.35L19.2 18Q19.15 19.2 18.2 20.1L16.9 21.45"/>
+
+                        <!-- wheel -->
+                        <circle class="graphic" cx="12.7" cy="21.5" r="3" fill="none"/>
+
+                        <!-- lower body joining wheel -->
+                        <path class="graphic" d="M7.75 22.05H8.55"/>
+                        <path class="graphic" d="M14.1 25.7L21.9 25.7"/>
+
+                        <!-- charging cable -->
+                        <path class="graphic" d="M19.2 17.6Q20.5 17.45 21.05 16.1L21.05 14.3Q21.05 12.9 22.4 12.9H23.15"/>
+
+                        <!-- charger body -->
+                        <path class="graphic" d="M25.2 25.7V5.65Q25.2 3.9 26.95 3.9H31.4Q33.15 3.9 33.15 5.65V25.7"/>
+
+                        <!-- small cable stub into charger -->
+                        <path class="graphic" d="M23.15 12.9H24.25Q25.2 12.9 25.2 13.85"/>
+
+                        <!-- charger lines -->
+                        <path class="graphic" d="M27.5 10.95V16.65"/>
+                        <path class="graphic" d="M30.8 10.95V16.65"/>
+
+                        <!-- lightning bolt -->
+                        <path class="graphic" d="M29.5 19.25L27.95 21.85H29.9L28.45 24.3"/>
                     </g>
                 </g>
 
@@ -108,18 +220,21 @@
                         <tspan class="circle_scale" dx="-4">kW</tspan>
                     </text>
 
-                    <g transform="translate(158, 143), scale(0.65)">
+                    <g transform="translate(158, 143)">
                         <!-- outline of the house -->
-                        <path class="graphic" d="M34 4 L10 28 H58 Z M14 60 H54 V28 H14 Z" />
+                        <path class="graphic" d="M22.1 2.6 L6.5 18.2 H37.7 Z M9.1 39 H35.1 V18.2 H9.1 Z" />
 
                         <!-- chimney -->
-                        <path class="graphic" d="M42 12 V8 H46 V16 H42 Z" />
+                        <path class="graphic" d="M27.3 7.8 V5.2 H29.9 V10.4 H27.3 Z" />
 
                         <!-- overlay roof -->
-                        <path class="graphic" d="M34 4 L10 28 H58 Z" />
+                        <path class="graphic" d="M22.1 2.6 L6.5 18.2 H37.7 Z" />
 
                         <!-- doors and windows -->
-                        <path class="graphic" d="M20 46 H28 V60 H20 Z M20 34 H28 V42 H20 Z M36 34 H48 V42 H36 Z M36 46 H48 V54 H36 Z" />
+                        <path class="graphic" d="M13 29.9 H18.2 V39 H13 Z
+                              M13 22.1 H18.2 V27.3 H13 Z
+                              M23.4 22.1 H31.2 V27.3 H23.4 Z
+                              M23.4 29.9 H31.2 V35.1 H23.4 Z" />
                     </g>
                 </g>
             </g>
@@ -140,8 +255,21 @@
                 <!-- Summary information panel -->
                 <g id="summary_panel" transform="translate(6, 5)">
                     <!-- Home Usage -->
-                    <g transform="translate(370, 0)">
-                        <path class="graphic graphic-home" d="M 34 4 L 10 28 L 58 28 L 34 4 M 14 28 L 14 60 L 54 60 L 54 28 M 20 46 L 28 46 L 28 60 L 20 60 L 20 46 M 20 34 L 28 34 L 28 42 L 20 42 L 20 34 M 36 34 L 48 34 L 48 42 L 36 42 L 36 34 M 42 12 L 42 8 L 46 8 L 46 16 M 36 46 L 48 46 L 48 54 L 36 54 L 36 46" stroke-width="1" transform="scale(0.7)" />
+                    <g transform="translate(373, 2)">
+                        <!-- outline of the house -->
+                        <path class="graphic graphic-home" d="M22.1 2.6 L6.5 18.2 H37.7 Z M9.1 39 H35.1 V18.2 H9.1 Z" />
+
+                        <!-- chimney -->
+                        <path class="graphic graphic-home" d="M27.3 7.8 V5.2 H29.9 V10.4 H27.3 Z" />
+
+                        <!-- overlay roof -->
+                        <path class="graphic graphic-home" d="M22.1 2.6 L6.5 18.2 H37.7 Z" />
+
+                        <!-- doors and windows -->
+                        <path class="graphic graphic-home" d="M13 29.9 H18.2 V39 H13 Z
+                              M13 22.1 H18.2 V27.3 H13 Z
+                              M23.4 22.1 H31.2 V27.3 H23.4 Z
+                              M23.4 29.9 H31.2 V35.1 H23.4 Z" />
                     </g>
                     <g transform="translate(426, 17)">
                         <text x="0" y="0">
@@ -152,7 +280,35 @@
 
                     <!-- Solar Generation -->
                     <g transform="translate(368, 50)">
-                        <path class="graphic graphic-solar" d="M 30 17 A 1 1 0 0 0 30 41 A 1 1 0 0 0 30 17 M 30 15 L 30 10 M 44 29 L 49 29 M 30 43 L 30 48 M 16 29 L 11 29 M 20 19 L 16 15 M 40 19 L 44 15 M 40 39 L 44 43 M 20 39 L 16 43" transform="scale(0.9)" />
+                        <path class="graphic graphic-solar" d="
+                            M 27 15.3
+                            A 0.9 0.9 0 0 0 27 36.9
+                            A 0.9 0.9 0 0 0 27 15.3
+
+                            M 27 13.5
+                            L 27 9
+
+                            M 39.6 26.1
+                            L 44.1 26.1
+
+                            M 27 38.7
+                            L 27 43.2
+
+                            M 14.4 26.1
+                            L 9.9 26.1
+
+                            M 18 17.1
+                            L 14.4 13.5
+
+                            M 36 17.1
+                            L 39.6 13.5
+
+                            M 36 35.1
+                            L 39.6 38.7
+
+                            M 18 35.1
+                            L 14.4 38.7
+                        " />
                     </g>
                     <g transform="translate(426, 71)">
                         <text x="0" y="0">
@@ -199,8 +355,10 @@
                     </g>
 
                     <!-- Battery State -->
-                    <g transform="translate(423, 307), rotate(180)">
-                        <path class="graphic graphic-battery" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9 L 25 9 L 25 22 L 20 22 L 20 9 M 28 9 L 33 9 L 33 22 L 28 22 L 28 9 M 36 9 L 41 9 L 41 22 L 36 22 L 36 9 M 44 9 L 49 9 L 49 22 L 44 22 L 44 9 M 52 9 L 57 9 L 57 22 L 52 22 L 52 9" transform="scale(0.75)" />
+                    <g transform="translate(424, 307), rotate(180), scale(0.85)">
+                        <path class="graphic graphic-battery" d="
+                            M 11 9 L 15 9 L 15 19 L 11 19 L 11 9 M 15.3 5.4 L 54 5.4 L 54 22.5 L 15.3 22.5 L 15.3 5.4 M 18 8.1 L 22.5 8.1 L 22.5 19.8 L 18 19.8 L 18 8.1 M 25.2 8.1 L 29.7 8.1 L 29.7 19.8 L 25.2 19.8 L 25.2 8.1 M 32.4 8.1 L 36.9 8.1 L 36.9 19.8 L 32.4 19.8 L 32.4 8.1 M 39.6 8.1 L 44.1 8.1 L 44.1 19.8 L 39.6 19.8 L 39.6 8.1 M 46.8 8.1 L 51.3 8.1 L 51.3 19.8 L 46.8 19.8 L 46.8 8.1
+                        " />
                     </g>
                     <g transform="translate(426, 290)">
                         <text x="0" y="0">
@@ -220,17 +378,27 @@
             </g>
         </g>
 
+        <defs>
+            <clipPath id="evc_icon_clip">
+                <circle cx="260" cy="134" r="27"/>
+            </clipPath>
+        </defs>
+
         <!-- The various types of markers for showing the direction of flow on the lines/paths -->
-        <marker id="line-arrow" orient="auto" markerWidth="8" markerHeight="10" refX="15" refY="5">
-            <path class="connector" d='M 4 0 L 0 5 L 4 10 L 5 10 L 1 5 L 5 0 Z' />
+        <marker id="line-arrow" orient="auto" markerWidth="8" markerHeight="10" refX="17" refY="5">
+            <path class="connector" transform="translate(0,5) scale(1,0.9) translate(0,-5)" d='M 3.65 1.35 L 0.71 4.29 Q 0 5 0.71 5.71 L 3.65 8.65 Q 4 9 4.5 9 L 5.5 9 Q 6 9 5.65 8.65 L 2.35 5.35 Q 2 5 2.35 4.65 L 5.65 1.35 Q 6 1 5.5 1 L 4.5 1 Q 4 1 3.65 1.35 Z' />
+        </marker>
+
+        <marker id="line-arrow-evc" orient="auto" markerWidth="8" markerHeight="10" refX="11" refY="5">
+            <path class="connector" transform="translate(0,5) scale(1,0.9) translate(0,-5)" d='M 3.65 1.35 L 0.71 4.29 Q 0 5 0.71 5.71 L 3.65 8.65 Q 4 9 4.5 9 L 5.5 9 Q 6 9 5.65 8.65 L 2.35 5.35 Q 2 5 2.35 4.65 L 5.65 1.35 Q 6 1 5.5 1 L 4.5 1 Q 4 1 3.65 1.35 Z' />
         </marker>
 
         <marker id="arc-arrow" orient="auto" markerWidth="8" markerHeight="10" refX="3" refY="5">
-            <path class="connector" d='M 4 0 L 0 5 L 4 10 L 5 10 L 1 5 L 5 0 Z' />
+            <path class="connector" transform="translate(0,5) scale(1,0.9) translate(0,-5)" d='M 3.65 1.35 L 0.71 4.29 Q 0 5 0.71 5.71 L 3.65 8.65 Q 4 9 4.5 9 L 5.5 9 Q 6 9 5.65 8.65 L 2.35 5.35 Q 2 5 2.35 4.65 L 5.65 1.35 Q 6 1 5.5 1 L 4.5 1 Q 4 1 3.65 1.35 Z' />
         </marker>
 
         <marker id="arc-arrow-opposite" orient="auto" markerWidth="8" markerHeight="10" refX="3" refY="5">
-            <path class="connector" d='M 0 0 L 4 5 L 0 10 L 1 10 L 5 5 L 1 0 Z' />
+            <path class="connector" transform="translate(0,5) scale(1,0.9) translate(0,-5)" d='M 2.35 1.35 L 5.29 4.29 Q 6 5 5.29 5.71 L 2.35 8.65 Q 2 9 1.5 9 L 0.5 9 Q 0 9 0.35 8.65 L 3.65 5.35 Q 4 5 3.65 4.65 L 0.35 1.35 Q 0 1 0.5 1 L 1.5 1 Q 2 1 2.35 1.35 Z' />
         </marker>
 
         <g id="gatewayDetails" style="display: none;">
@@ -239,6 +407,24 @@
             <text x="0" y="0" class="grouper">
                 <tspan class="label" x="0" dy="1.4em">Status</tspan>
                 <tspan class="gateway_mode" text-anchor="end" x="205" dy="0">0</tspan>
+            </text>
+        </g>
+
+        <g id="evcDetails" style="display: none;">
+            <text class="label" x="0" y="0">EV Charger</text>
+
+            <text x="0" y="0" class="grouper">
+                <tspan class="label" x="0" dy="1.4em">Status</tspan>
+                <tspan class="charging_state" text-anchor="end" x="210" dy="0">0</tspan>
+
+                <tspan class="label" x="0" dy="1.4em">Max Current</tspan>
+                <tspan class="charge_limit" text-anchor="end" x="210" dy="0">0</tspan>
+
+                <tspan class="label" x="0" dy="1.4em">Power</tspan>
+                <tspan class="active_power" text-anchor="end" x="210" dy="0">0</tspan>
+
+                <tspan class="label" x="0" dy="1.4em">Session Energy</tspan>
+                <tspan class="charge_session_energy" text-anchor="end" x="205" dy="0">0</tspan>
             </text>
         </g>
 
@@ -261,14 +447,14 @@
         </g>
 
         <g id="batteryDetails" style="display: none;">
-            <g transform="translate(50, 8), rotate(180), scale(0.9)">
-                <path style="stroke: rgb(163, 163, 163); stroke-width: 2px;" class="graphic" d="M 11 10 L 15 10 L 15 21 L 11 21 L 11 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9" />
+            <g transform="translate(51, 8), rotate(180), scale(0.9)">
+                <path style="stroke: rgb(163, 163, 163); stroke-width: 2px;" class="graphic" d="M 13 10 L 17 10 L 17 21 L 13 21 L 13 10 M 17 6 L 60 6 L 60 25 L 17 25 L 17 6 M 20 9" />
             </g>
 
-            <text dx="0" y="0" class="grouper">
-                <tspan x="18" dy="-1" text-anchor="middle" class="state_of_charge" style="font-size: 11pt;">0</tspan>
+            <text dx="1" y="-0.2" class="grouper">
+                <tspan x="18" dy="-1" text-anchor="middle" class="state_of_charge" style="font-size: 10.5pt;">0</tspan>
 
-                <tspan x="18" dy="20" text-anchor="middle" class="remaining_capacity" style="font-size: 11pt;">0</tspan>
+                <tspan x="18" dy="20" text-anchor="middle" class="remaining_capacity" style="font-size: 10.5pt;">0</tspan>
             </text>
         </g>
     </svg>
