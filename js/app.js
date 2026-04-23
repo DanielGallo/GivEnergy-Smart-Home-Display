@@ -15,6 +15,7 @@ class App {
         me.processedGatewayData = null;
         me.processedInverterData = null;
         me.inverterRendered = false;
+        me.inverterCount = 0;
         me.gatewayRendered = false;
         me.debugMode = false;
         me.useSampleData = false;
@@ -758,6 +759,7 @@ class App {
             });
 
             me.inverterRendered = true;
+            me.inverterCount = inverters.length;
             inverterIndex = -1;
         }
 
@@ -918,16 +920,24 @@ class App {
 
         if (!me.showAdvancedInfo || !me.inverterRendered) return;
 
-        const isLandscape = document.body.clientWidth > document.body.clientHeight;
         const panelOriginY = 19;
-        // Portrait: the original layout had ~5px of imperceptible overflow for 2 inverters.
-        // Adding that tolerance back prevents unnecessary scaling in the 2-inverter case.
-        const availableHeight = isLandscape
-            ? 375 - panelOriginY - 10
-            : (880 - 510) / 1.07 - panelOriginY + 5;
+
+        // Two inverters without an EVC always fit without scaling.
+        if (me.inverterCount <= 2 && !me.hasEvc) {
+            $('#inverter_panel')[0].setAttribute('transform', `translate(610, ${panelOriginY})`);
+            return;
+        }
+
+        // Available height is constrained by the divider line, which ends at y=330 in panels coordinates.
+        const availableHeight = 343 - panelOriginY;
 
         const scale = Math.min(1, availableHeight / me.summaryOffsetY);
-        $('#inverter_panel')[0].setAttribute('transform', `translate(610, ${panelOriginY}) scale(${scale})`);
+
+        // When scaled, shift the panel upward slightly so the title stays visually aligned
+        // with the "Used" label on the left side of the panel.
+        const adjustedY = panelOriginY - (1 - scale) * 4;
+
+        $('#inverter_panel')[0].setAttribute('transform', `translate(610, ${adjustedY}) scale(${scale})`);
     }
 
     /**
