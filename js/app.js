@@ -88,20 +88,41 @@ class App {
                 return response.json();
             })
             .then(data => {
-                me.givTcpHosts = data.givTcpHosts;
                 me.solarRate = data.solarRate;
                 me.exportRate = data.exportRate;
 
-                if (me.givTcpHosts !== null && me.solarRate !== null && me.exportRate !== null) {
-                    if (me.givTcpHosts.length > 1) {
-                        me.singleInverter = false;
+                const finalize = () => {
+                    if (me.givTcpHosts !== null && me.solarRate !== null && me.exportRate !== null) {
+                        if (me.givTcpHosts.length > 1) {
+                            me.singleInverter = false;
+                        }
+
+                        me.givTcpHosts.forEach((givTcpHost, index) => {
+                            givTcpHost.sortOrder = index;
+                        });
+
+                        me.launch();
                     }
+                };
 
-                    me.givTcpHosts.forEach((givTcpHost, index) => {
-                        givTcpHost.sortOrder = index;
+                if (me.useSampleData) {
+                    // Probe for up to 3 inverter sample files to determine how many inverters exist,
+                    // so app.json givTcpHosts doesn't need to be kept in sync with sample data folders.
+                    const port = window.location.port;
+                    const portPart = port ? `:${port}` : '';
+                    const probes = Array.from({ length: 3 }, (_, i) => {
+                        const url = `${me.baseUrl}${portPart}/data_samples/${me.sampleDataName}/inverter_${i}_sample.json`;
+                        return fetch(url).then(r => r.ok ? i : null).catch(() => null);
                     });
-
-                    me.launch();
+                    Promise.all(probes).then(results => {
+                        me.givTcpHosts = results
+                            .filter(i => i !== null)
+                            .map(i => ({ name: `Inverter ${i + 1}`, sortOrder: i, port }));
+                        finalize();
+                    });
+                } else {
+                    me.givTcpHosts = data.givTcpHosts;
+                    finalize();
                 }
             });
 
