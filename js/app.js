@@ -268,11 +268,9 @@ class App {
             console.log('Single inverter: ', me.singleInverter);
         }
 
+        // 3-phase inverters don't return power flows, so derive them from the available power values.
         if (!me.singlePhase) {
             me.cachedInverterData.forEach((cachedRecord, index) => {
-                // 3-phase inverters don't return power flows for some reason (e.g. Solar to Battery, Grid to
-                // Battery, etc), so attempt to calculate these values manually and apply it to the cached data
-                // returned from GivTCP, so the app can then attempt to show these flows.
                 if (Helpers.getPropertyValueFromMapping(cachedRecord.data, 'Power.Flows') === undefined) {
                     let baseData = {};
 
@@ -282,109 +280,29 @@ class App {
                         }
                     });
 
-                    // The "meter" values appear to be more accurate, and also reflect any actual export
+                    // The "meter" values are more accurate and reflect actual export
+                    baseData.Export_Power = baseData.Meter_Export_Power;
                     cachedRecord.data.Power.Power.Import_Power = baseData.Meter_Import_Power;
                     cachedRecord.data.Power.Power.Export_Power = baseData.Meter_Export_Power;
-                    baseData.Export_Power = baseData.Meter_Export_Power;
 
                     if (baseData.Meter_Import_Power > 0) {
                         baseData.Grid_Power = baseData.Meter_Import_Power * -1;
-                        cachedRecord.data.Power.Power.Grid_Power = baseData.Meter_Import_Power * -1;
                     } else {
                         baseData.Grid_Power = baseData.Meter_Export_Power;
-                        cachedRecord.data.Power.Power.Grid_Power = baseData.Meter_Export_Power;
                     }
+                    cachedRecord.data.Power.Power.Grid_Power = baseData.Grid_Power;
 
-                    // Battery_Power doesn't appear to be included in 3-phase Power values, so set it
-                    if (baseData.Charge_Power > 0) {
-                        cachedRecord.data.Power.Power.Battery_Power = baseData.Charge_Power * -1;
-                    } else {
-                        cachedRecord.data.Power.Power.Battery_Power = baseData.Discharge_Power;
-                    }
+                    // Battery_Power is not included in 3-phase Power values, so derive it
+                    cachedRecord.data.Power.Power.Battery_Power = baseData.Charge_Power > 0
+                        ? baseData.Charge_Power * -1
+                        : baseData.Discharge_Power;
 
-                    let batteryToGrid = 0;
-                    let batteryToHouse = 0;
-                    let gridToBattery = 0;
-                    let gridToHouse = 0;
-                    let solarToBattery = 0;
-                    let solarToGrid = 0;
-                    let solarToHouse = 0;
-
-                    // Remaining power variables for tracking
-                    let remainingSolar = baseData.PV_Power;
-                    let remainingGrid = baseData.Grid_Power;
-                    let remainingLoad = baseData.Load_Power;
-
-                    // Supply the house load first
-                    if (remainingSolar >= remainingLoad) {
-                        solarToHouse = remainingLoad;
-                        remainingSolar -= remainingLoad;
-                        remainingLoad = 0;
-                    } else {
-                        solarToHouse = remainingSolar;
-                        remainingLoad -= remainingSolar;
-                        remainingSolar = 0;
-                    }
-
-                    if (remainingLoad > 0 && baseData.Discharge_Power > 0) {
-                        // Battery discharges to supply the remaining house load
-                        if (baseData.Discharge_Power >= remainingLoad) {
-                            batteryToHouse = remainingLoad;
-                            remainingLoad = 0;
-                        } else {
-                            batteryToHouse = baseData.Discharge_Power;
-                            remainingLoad -= baseData.Discharge_Power;
-                        }
-                    }
-
-                    if (remainingLoad > 0 && remainingGrid > 0) {
-                        // Grid supplies the remaining house load
-                        if (remainingGrid >= remainingLoad) {
-                            gridToHouse = remainingLoad;
-                            remainingGrid -= remainingLoad;
-                            remainingLoad = 0;
-                        } else {
-                            gridToHouse = remainingGrid;
-                            remainingLoad -= remainingGrid;
-                            remainingGrid = 0;
-                        }
-                    }
-
-                    if (baseData.Charge_Power > 0) {
-                        if (remainingSolar >= baseData.Charge_Power) {
-                            solarToBattery = baseData.Charge_Power;
-                            remainingSolar -= baseData.Charge_Power;
-                        } else {
-                            solarToBattery = remainingSolar;
-                            remainingSolar = 0;
-                            gridToBattery = baseData.Charge_Power - solarToBattery;
-                        }
-                    }
-
-                    if (remainingSolar > 0) {
-                        solarToGrid = remainingSolar;
-                        remainingSolar = 0;
-                    }
-
-                    if (baseData.Discharge_Power > batteryToHouse) {
-                        batteryToGrid = baseData.Discharge_Power - batteryToHouse;
-                    }
-
-                    let flows = {
-                        Battery_to_Grid: batteryToGrid,
-                        Battery_to_House: batteryToHouse,
-                        Grid_to_Battery: gridToBattery,
-                        Grid_to_House: gridToHouse,
-                        Solar_to_Battery: solarToBattery,
-                        Solar_to_Grid: solarToGrid,
-                        Solar_to_House: solarToHouse
-                    };
-
-                    cachedRecord.data.Power.Flows = flows;
+                    cachedRecord.data.Power.Flows = Helpers.calculateThreePhaseFlows(baseData);
                 }
             });
         }
 
+        // First pass: combine each sensor's values across inverters using its configured combinator
         InverterSensors.forEach((sensor) => {
             let value = null;
             let combinator = null;
@@ -433,8 +351,6 @@ class App {
             }
         });
 
-        const inverterData = me.processedInverterData;
-
         // If there are one or more Gateways
         if (me.cachedGatewayData.length > 0) {
             GatewaySensors.forEach((sensor) => {
@@ -465,97 +381,12 @@ class App {
             });
         }
 
+        // Second pass: derive any computed sensor values, then render each sensor
         InverterSensors.forEach((sensor) => {
-            let value = me.processedInverterData[sensor.id];
+            let value = me.deriveSensorValue(sensor, me.processedInverterData[sensor.id]);
 
-            // Some sensors require custom calculation of the values
-            if (sensor.id === 'Battery_State') {
-                let chargeRate = inverterData.Charge_Power;
-                let dischargeRate = inverterData.Discharge_Power;
-
-                if (dischargeRate > 0) {
-                    value = 'Discharging';
-                } else if (chargeRate > 0) {
-                    value = 'Charging';
-                } else {
-                    value = 'Idle';
-                }
-            } else if (sensor.id === 'Load_Power'
-                && me.singlePhase === true
-                && me.singleInverter === false) {
-                if (inverterData.Export_Power === inverterData.Solar_to_Grid
-                    && inverterData.Export_Power > 0 && inverterData.Solar_to_Grid > 0) {
-                    inverterData.Grid_Power = inverterData.Export_Power;
-                }
-
-                // In a single phase environment we need to carefully calculate house load
-                // because each inverter treats other inverters as house load (as they're not aware of each other).
-                let totalSourcePower = inverterData.PV_Power + inverterData.Discharge_Power + inverterData.Import_Power;
-                let loadPower = totalSourcePower - inverterData.Charge_Power - inverterData.Export_Power;
-
-                value = loadPower;
-
-                if (inverterData.Battery_to_House === 0
-                    && inverterData.Solar_to_House === 0
-                    && inverterData.Grid_to_House === 0
-                    && inverterData.Solar_to_Grid > 10) {
-                    // With multiple inverters, if solar is the only thing powering the house,
-                    // the "Solar_to_House" can be zero (along with the other flows), so ensure
-                    // the "solar to house" flow line is still rendered.
-                    inverterData.Solar_to_House = 10;
-                }
-
-                if (inverterData.Battery_to_House === 0
-                    && inverterData.Grid_to_House === 0
-                    && inverterData.Battery_to_Grid > 10) {
-                    // If multiple inverters are exporting, ensure the flow line from the battery to the
-                    // house is still flowing.
-                    inverterData.Battery_to_House = 10;
-                }
-
-                if (inverterData.Charge_Power > 0
-                    && inverterData.Solar_to_House > 0
-                    && inverterData.Solar_to_Grid > 0
-                    && inverterData.PV_Power > 10
-                    && inverterData.Solar_to_Battery === 0
-                    && inverterData.Grid_to_House === 0) {
-                    // With multiple inverters on a single phase, when solar is fully powering the house, exporting,
-                    // and charging the batteries, there's no flow between solar and batteries. Force this flow to be
-                    // rendered.
-                    inverterData.Solar_to_Battery = 10;
-                }
-            } else if (sensor.id === 'Solar_Income') {
-                let income = value * me.solarRate;
-
-                value = Converters.numberToCurrency(income);
-            } else if (sensor.id === 'Export_Income') {
-                let income = value * me.exportRate;
-
-                value = Converters.numberToCurrency(income);
-            } else if (sensor.id === 'Inverter_Details') {
-                let inverters = [];
-
-                me.cachedInverterData.forEach((cachedRecord, index) => {
-                    let batteryArray = Helpers.getBatteriesFromInverter(inverterData[index].Battery_Details);
-
-                    inverters.push({
-                        name: cachedRecord.name,
-                        data: inverterData[index],
-                        rawData: cachedRecord.data,
-                        batteries: batteryArray
-                    });
-                });
-
-                value = inverters;
-            }
-
-            // Process the sensor if there's a value and it's non-zero,
-            // or process the sensor if forced (e.g. to reset the daily usage stats to zero at midnight)
             if (value || sensor.forceRefresh) {
-                me.processItem({
-                    sensor: sensor,
-                    value: value
-                });
+                me.processItem({ sensor, value });
             }
         });
 
@@ -565,6 +396,102 @@ class App {
         if (me.hasEvc) {
             me.renderEvc();
         }
+    }
+
+    /**
+     * Returns the final value for a sensor, applying any derivation logic that cannot be expressed
+     * as a simple mapping or combinator. Returns the raw value unchanged for sensors with no special logic.
+     */
+    deriveSensorValue(sensor, value) {
+        const me = this;
+
+        switch (sensor.id) {
+            case 'Battery_State':
+                return me.deriveBatteryState();
+            case 'Load_Power':
+                return (me.singlePhase && !me.singleInverter) ? me.deriveLoadPower() : value;
+            case 'Solar_Income':
+                return Converters.numberToCurrency(value * me.solarRate);
+            case 'Export_Income':
+                return Converters.numberToCurrency(value * me.exportRate);
+            case 'Inverter_Details':
+                return me.deriveInverterDetails();
+            default:
+                return value;
+        }
+    }
+
+    /**
+     * Derives the human-readable battery state string from the current charge/discharge rates.
+     */
+    deriveBatteryState() {
+        const inverterData = this.processedInverterData;
+
+        if (inverterData.Discharge_Power > 0) return 'Discharging';
+        if (inverterData.Charge_Power > 0) return 'Charging';
+        return 'Idle';
+    }
+
+    /**
+     * Derives the house load power in a multi-inverter single-phase setup, where each inverter
+     * incorrectly counts the others as load. Also applies flow-line corrections so the diagram
+     * renders sensibly when flows are zero but power is flowing through the system.
+     */
+    deriveLoadPower() {
+        const me = this;
+        const inverterData = me.processedInverterData;
+
+        if (inverterData.Export_Power === inverterData.Solar_to_Grid
+            && inverterData.Export_Power > 0 && inverterData.Solar_to_Grid > 0) {
+            inverterData.Grid_Power = inverterData.Export_Power;
+        }
+
+        let totalSourcePower = inverterData.PV_Power + inverterData.Discharge_Power + inverterData.Import_Power;
+        let loadPower = totalSourcePower - inverterData.Charge_Power - inverterData.Export_Power;
+
+        // With multiple inverters, if solar alone powers the house, Solar_to_House can be zero.
+        // Force the flow to render so the diagram doesn't look broken.
+        if (inverterData.Battery_to_House === 0
+            && inverterData.Solar_to_House === 0
+            && inverterData.Grid_to_House === 0
+            && inverterData.Solar_to_Grid > 10) {
+            inverterData.Solar_to_House = 10;
+        }
+
+        // If multiple inverters are exporting, ensure the battery-to-house flow still renders.
+        if (inverterData.Battery_to_House === 0
+            && inverterData.Grid_to_House === 0
+            && inverterData.Battery_to_Grid > 10) {
+            inverterData.Battery_to_House = 10;
+        }
+
+        // With multiple inverters on a single phase, when solar fully powers the house, exports,
+        // and charges batteries simultaneously, force solar-to-battery flow to render.
+        if (inverterData.Charge_Power > 0
+            && inverterData.Solar_to_House > 0
+            && inverterData.Solar_to_Grid > 0
+            && inverterData.PV_Power > 10
+            && inverterData.Solar_to_Battery === 0
+            && inverterData.Grid_to_House === 0) {
+            inverterData.Solar_to_Battery = 10;
+        }
+
+        return loadPower;
+    }
+
+    /**
+     * Builds the inverter details array used to render the per-inverter summary panels.
+     */
+    deriveInverterDetails() {
+        const me = this;
+        const inverterData = me.processedInverterData;
+
+        return me.cachedInverterData.map((cachedRecord, index) => ({
+            name: cachedRecord.name,
+            data: inverterData[index],
+            rawData: cachedRecord.data,
+            batteries: Helpers.getBatteriesFromInverter(inverterData[index].Battery_Details)
+        }));
     }
 
     /**
@@ -596,8 +523,8 @@ class App {
             }
 
             // If power or flow values are less than 10 Watts (less than 0.01 kW), treat as a zero-value
-            if (value < 10) {
-                value = 0;
+            value = Helpers.clampPower(value);
+            if (value === 0) {
                 me.processedInverterData[sensor.id] = 0;
             }
 
@@ -658,185 +585,18 @@ class App {
             && sensor.id === 'Gateway_Details'
             && Array.isArray(value)
             && me.showAdvancedInfo) {
-            let gateways = value;
-            let svgContainerElement = $('#inverter_panel')[0];
-            let svgCloneableGatewayElement = $('#gatewayDetails')[0];
-            let gatewayOffsetAddition = 54;
-            let gatewayIndex = -1;
-
-            // On first load, render the gateway panel
-            if (!me.gatewayRendered) {
-                gateways.forEach(gateway => {
-                    let svgClonedElement = svgCloneableGatewayElement.cloneNode(true);
-                    svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
-                    svgClonedElement.setAttribute('style', '');
-                    svgClonedElement.setAttribute('id', `gateway_${++ gatewayIndex}`);
-
-                    svgContainerElement.appendChild(svgClonedElement);
-
-                    me.summaryOffsetY = me.summaryOffsetY + gatewayOffsetAddition;
-                })
-
-                me.gatewayRendered = true;
-                gatewayIndex = -1;
-            }
-
-            gateways.forEach(gateway => {
-                gatewayIndex ++;
-
-                let modeEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_mode`);
-                modeEl.text(gateway.data.gatewayMode);
-            });
+            me.renderGatewayDetails(value);
         } else if (sensor.type === SensorType.Summary
             && sensor.id === 'Inverter_Details'
             && Array.isArray(value)
             && me.showAdvancedInfo) {
-            let inverters = value;
-            let svgContainerElement = $('#inverter_panel')[0];
-            let svgCloneableInverterElement = $('#inverterDetails')[0];
-            let svgCloneableBatteryElement = $('#batteryDetails')[0];
-            let offsetX = 0;
-            let inverterOffsetAddition = 116;
-            let batteryOffsetX = 65;
-            let batteryOffsetYAddition = 36;
-            let batteryPanelStartingPositionX = 162;
-            let spacer = 12;
-            let inverterIndex = -1;
-
-            // On first load, render the battery statistics panels
-            if (!me.inverterRendered) {
-                inverters.forEach(inverter => {
-                    let svgClonedElement = svgCloneableInverterElement.cloneNode(true);
-                    svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
-                    svgClonedElement.setAttribute('style', '');
-                    svgClonedElement.setAttribute('id', `inverter_${++ inverterIndex}`);
-
-                    svgContainerElement.appendChild(svgClonedElement);
-
-                    let inverterNameEl = $(`#inverter_${inverterIndex} > text.label`);
-                    inverterNameEl.text(`Inverter (${inverter.name})`);
-
-                    offsetX = batteryPanelStartingPositionX;
-                    me.summaryOffsetY = me.summaryOffsetY + inverterOffsetAddition;
-
-                    // Reverse the batteries, so we draw the last battery to the right side first
-                    let batteries = inverter.batteries.reverse();
-                    let batteryIndex = batteries.length;
-
-                    // Scale batteries down proportionally when more than 3, so they fit on one row
-                    let batteryScale = Math.min(1, 3 / batteries.length);
-                    let batteryShift = batteryPanelStartingPositionX * (1 - batteryScale);
-                    let batteryGroupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    batteryGroupElement.setAttribute('transform', `translate(${batteryShift}, ${me.summaryOffsetY}) scale(${batteryScale})`);
-                    svgContainerElement.appendChild(batteryGroupElement);
-
-                    // The number of batteries can vary, so iterate over each battery
-                    for (let battery in batteries) {
-                        let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
-                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, 0)`);
-                        svgClonedElement.setAttribute('style', '');
-                        svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${-- batteryIndex}`);
-
-                        batteryGroupElement.appendChild(svgClonedElement);
-
-                        offsetX = offsetX - batteryOffsetX;
-                    }
-
-                    // Reset reverse order
-                    inverter.batteries.reverse();
-
-                    offsetX = 0;
-                    me.summaryOffsetY = me.summaryOffsetY + batteryOffsetYAddition + spacer;
-                })
-
-                me.inverterRendered = true;
-                inverterIndex = -1;
-            }
-
-            // Now populate or update the values being shown in the inverter and battery statistics panels
-            inverters.forEach(inverter => {
-                inverterIndex ++;
-                let batteries = inverter.batteries;
-                let batteryIndex = -1;
-
-                let stateOfChargeEl = $(`#inverter_${inverterIndex} >> tspan.inverter_soc`);
-                stateOfChargeEl.text(Formatters.sensorValue(inverter.data.Battery_State_of_Charge, Helpers.getSensorById('Battery_State_of_Charge')));
-
-                let solarPowerEl = $(`#inverter_${inverterIndex} >> tspan.solar_power`);
-                solarPowerEl.text(Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power')));
-
-                let targetChargeEl = $(`#inverter_${inverterIndex} >> tspan.target_soc`);
-                targetChargeEl.text(Formatters.sensorValue(inverter.data.Battery_Target_State_of_Charge, Helpers.getSensorById('Battery_Target_State_of_Charge')));
-
-                let inverterStatus = 'Batteries Idle';
-                let inverterRate = null;
-                let chargeRate = inverter.data.Charge_Power;
-                let dischargeRate = inverter.data.Discharge_Power;
-
-                if (dischargeRate > 0) {
-                    inverterStatus = 'Discharging';
-                    inverterRate = dischargeRate;
-                } else if (chargeRate > 0) {
-                    inverterStatus = 'Charging';
-                    inverterRate = chargeRate;
-                }
-
-                if (inverterRate !== null) {
-                    inverterStatus += ' ' + Formatters.sensorValue(inverterRate, {
-                        converter: Converters.wattsToKw,
-                        suffix: Suffix.Power
-                    });
-                }
-
-                let inverterStatusEl = $(`#inverter_${inverterIndex} >> tspan.inverter_status`);
-                inverterStatusEl.text(inverterStatus);
-
-                batteries.forEach(battery => {
-                    batteryIndex ++;
-
-                    // Calculate the remaining capacity (in kWh) of the battery
-                    let remainingAh = battery['Battery_Remaining_Capacity'];
-                    let batteryVoltage = battery['Battery_Voltage'];
-                    let remainingKWh = (remainingAh * batteryVoltage) / 1000;
-
-                    let stateOfChargeEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.state_of_charge`);
-                    stateOfChargeEl.text(Formatters.sensorValue(battery['Battery_SOC'], {
-                        suffix: Suffix.Percent
-                    }));
-
-                    let remainingCapacityEl = $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.remaining_capacity`);
-                    remainingCapacityEl.text(Formatters.sensorValue(remainingKWh, {
-                        suffix: Suffix.Energy,
-                        formatter: Formatters.roundToOneDecimalPlace
-                    }));
-                });
-            });
+            me.renderInverterDetails(value);
         } else if (sensor.type === SensorType.Summary && !Array.isArray(value)) {
             element.text(Formatters.sensorValue(value, sensor));
         }
 
         if (sensor.type === SensorType.Power || sensor.type === SensorType.Flow) {
-            if (value === 0) {
-                // If value is less than 0.01 kW (10 Watts), mark the line/group as Idle
-                if (line) {
-                    line.setAttribute('marker-end', '');
-                }
-
-                group.removeClass('active');
-                group.addClass('idle');
-            } else {
-                // Active
-                if (line) {
-                    line.setAttribute('marker-end', `url(#${arrow})`);
-
-                    // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
-                    let newLine = line.cloneNode(true);
-                    line.parentNode.replaceChild(newLine, line);
-                }
-
-                group.removeClass('idle');
-                group.addClass('active');
-            }
+            me.setActiveState(group, line, arrow, value !== 0);
 
             if (me.debugMode) {
                 // Show all values if the app is in debug mode
@@ -846,6 +606,198 @@ class App {
                 }
             }
         }
+    }
+
+    /**
+     * Toggles the active/idle CSS classes on a group element and, if a flow line is present,
+     * sets or clears the arrow marker and redraws the node to fix a Safari rendering bug.
+     * @param {jQuery} group The jQuery group element to toggle
+     * @param {Element|null} line The raw SVG line/path element, or null if none
+     * @param {string|null} arrowMarkerId The marker ID to apply (e.g. 'line-arrow'), or null if no line
+     * @param {boolean} isActive Whether the element should be active
+     */
+    setActiveState(group, line, arrowMarkerId, isActive) {
+        if (isActive) {
+            if (line) {
+                line.setAttribute('marker-end', `url(#${arrowMarkerId})`);
+
+                // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
+                let newLine = line.cloneNode(true);
+                line.parentNode.replaceChild(newLine, line);
+            }
+
+            group.removeClass('idle').addClass('active');
+        } else {
+            if (line) line.setAttribute('marker-end', '');
+            group.removeClass('active').addClass('idle');
+        }
+    }
+
+    /**
+     * Renders or updates the gateway summary panel(s) in the advanced info section.
+     * @param {Array} gateways Array of gateway objects with data payloads
+     */
+    renderGatewayDetails(gateways) {
+        const me = this;
+        let svgContainerElement = $('#inverter_panel')[0];
+        let svgCloneableGatewayElement = $('#gatewayDetails')[0];
+        let gatewayOffsetAddition = 54;
+        let gatewayIndex = -1;
+
+        // On first load, clone and append the gateway panel template for each gateway
+        if (!me.gatewayRendered) {
+            gateways.forEach(gateway => {
+                let svgClonedElement = svgCloneableGatewayElement.cloneNode(true);
+                svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
+                svgClonedElement.setAttribute('style', '');
+                svgClonedElement.setAttribute('id', `gateway_${++gatewayIndex}`);
+
+                svgContainerElement.appendChild(svgClonedElement);
+
+                me.summaryOffsetY += gatewayOffsetAddition;
+            });
+
+            me.gatewayRendered = true;
+            gatewayIndex = -1;
+        }
+
+        gateways.forEach(gateway => {
+            gatewayIndex++;
+
+            let modeEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_mode`);
+            modeEl.text(gateway.data.gatewayMode);
+        });
+    }
+
+    /**
+     * Renders or updates the inverter and battery summary panels in the advanced info section.
+     * On the first call, panel elements are cloned from the SVG templates and appended.
+     * Subsequent calls update the displayed values in place.
+     * @param {Array} inverters Array of inverter objects with data, rawData, and battery payloads
+     */
+    renderInverterDetails(inverters) {
+        const me = this;
+        let svgContainerElement = $('#inverter_panel')[0];
+        let svgCloneableInverterElement = $('#inverterDetails')[0];
+        let svgCloneableBatteryElement = $('#batteryDetails')[0];
+        let offsetX = 0;
+        let inverterOffsetAddition = 116;
+        let batteryOffsetX = 65;
+        let batteryOffsetYAddition = 36;
+        let batteryPanelStartingPositionX = 162;
+        let spacer = 12;
+        let inverterIndex = -1;
+
+        // On first load, render the inverter and battery statistics panels
+        if (!me.inverterRendered) {
+            inverters.forEach(inverter => {
+                let svgClonedElement = svgCloneableInverterElement.cloneNode(true);
+                svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
+                svgClonedElement.setAttribute('style', '');
+                svgClonedElement.setAttribute('id', `inverter_${++inverterIndex}`);
+
+                svgContainerElement.appendChild(svgClonedElement);
+
+                let inverterNameEl = $(`#inverter_${inverterIndex} > text.label`);
+                inverterNameEl.text(`Inverter (${inverter.name})`);
+
+                offsetX = batteryPanelStartingPositionX;
+                me.summaryOffsetY += inverterOffsetAddition;
+
+                // Reverse the batteries, so we draw the last battery to the right side first
+                let batteries = inverter.batteries.reverse();
+                let batteryIndex = batteries.length;
+
+                // Scale batteries down proportionally when more than 3, so they fit on one row
+                let batteryScale = Math.min(1, 3 / batteries.length);
+                let batteryShift = batteryPanelStartingPositionX * (1 - batteryScale);
+                let batteryGroupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                batteryGroupElement.setAttribute('transform', `translate(${batteryShift}, ${me.summaryOffsetY}) scale(${batteryScale})`);
+                svgContainerElement.appendChild(batteryGroupElement);
+
+                // The number of batteries can vary, so iterate over each battery
+                for (let battery in batteries) {
+                    let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
+                    svgClonedElement.setAttribute('transform', `translate(${offsetX}, 0)`);
+                    svgClonedElement.setAttribute('style', '');
+                    svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${--batteryIndex}`);
+
+                    batteryGroupElement.appendChild(svgClonedElement);
+
+                    offsetX -= batteryOffsetX;
+                }
+
+                // Reset reverse order
+                inverter.batteries.reverse();
+
+                offsetX = 0;
+                me.summaryOffsetY += batteryOffsetYAddition + spacer;
+            });
+
+            me.inverterRendered = true;
+            inverterIndex = -1;
+        }
+
+        // Now populate or update the values being shown in the inverter and battery statistics panels
+        inverters.forEach(inverter => {
+            inverterIndex++;
+            let batteries = inverter.batteries;
+            let batteryIndex = -1;
+
+            $(`#inverter_${inverterIndex} >> tspan.inverter_soc`).text(
+                Formatters.sensorValue(inverter.data.Battery_State_of_Charge, Helpers.getSensorById('Battery_State_of_Charge'))
+            );
+
+            $(`#inverter_${inverterIndex} >> tspan.solar_power`).text(
+                Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power'))
+            );
+
+            $(`#inverter_${inverterIndex} >> tspan.target_soc`).text(
+                Formatters.sensorValue(inverter.data.Battery_Target_State_of_Charge, Helpers.getSensorById('Battery_Target_State_of_Charge'))
+            );
+
+            let inverterStatus = 'Batteries Idle';
+            let inverterRate = null;
+            let chargeRate = inverter.data.Charge_Power;
+            let dischargeRate = inverter.data.Discharge_Power;
+
+            if (dischargeRate > 0) {
+                inverterStatus = 'Discharging';
+                inverterRate = dischargeRate;
+            } else if (chargeRate > 0) {
+                inverterStatus = 'Charging';
+                inverterRate = chargeRate;
+            }
+
+            if (inverterRate !== null) {
+                inverterStatus += ' ' + Formatters.sensorValue(inverterRate, {
+                    converter: Converters.wattsToKw,
+                    suffix: Suffix.Power
+                });
+            }
+
+            $(`#inverter_${inverterIndex} >> tspan.inverter_status`).text(inverterStatus);
+
+            batteries.forEach(battery => {
+                batteryIndex++;
+
+                // Calculate the remaining capacity (in kWh) of the battery
+                let remainingAh = battery['Battery_Remaining_Capacity'];
+                let batteryVoltage = battery['Battery_Voltage'];
+                let remainingKWh = (remainingAh * batteryVoltage) / 1000;
+
+                $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.state_of_charge`).text(
+                    Formatters.sensorValue(battery['Battery_SOC'], { suffix: Suffix.Percent })
+                );
+
+                $(`#battery_${inverterIndex}_${batteryIndex} >> tspan.remaining_capacity`).text(
+                    Formatters.sensorValue(remainingKWh, {
+                        suffix: Suffix.Energy,
+                        formatter: Formatters.roundToOneDecimalPlace
+                    })
+                );
+            });
+        });
     }
 
     renderEvcVisibility() {
@@ -864,43 +816,21 @@ class App {
         const me = this;
         const charger = me.cachedEvcData.Charger;
 
-        let activePowerW = charger.Active_Power ?? 0;
-        let maxChargeCurrent = charger.Charge_Limit ?? 0;
-
-        if (activePowerW < 10) {
-            activePowerW = 0;
-        }
-
-        const activePowerKw = activePowerW / 1000;
+        let activePowerW = Helpers.clampPower(charger.Active_Power ?? 0);
+        const activePowerKw = Converters.wattsToKw(activePowerW);
 
         // Power circle
         const evcTextEl = $('#power_evc_text');
         const evcGroup = $('#power_evc');
 
-        evcTextEl.text(activePowerKw.toFixed(2));
-
-        if (activePowerW > 0) {
-            evcGroup.removeClass('idle').addClass('active');
-        } else {
-            evcGroup.removeClass('active').addClass('idle');
-        }
+        evcTextEl.text(activePowerKw);
+        me.setActiveState(evcGroup, null, null, activePowerW > 0);
 
         // Flow line
         const flowGroup = $('#home_to_evc');
         const flowLine = flowGroup.children('line')[0];
 
-        if (activePowerW > 0) {
-            flowLine.setAttribute('marker-end', 'url(#line-arrow-evc)');
-
-            // Redraw the node - fixes an issue where the arrows/markers don't render in Safari
-            let newLine = flowLine.cloneNode(true);
-            flowLine.parentNode.replaceChild(newLine, flowLine);
-
-            flowGroup.removeClass('idle').addClass('active');
-        } else {
-            flowLine.setAttribute('marker-end', '');
-            flowGroup.removeClass('active').addClass('idle');
-        }
+        me.setActiveState(flowGroup, flowLine, 'line-arrow-evc', activePowerW > 0);
 
         // Summary panel
         if (me.showAdvancedInfo) {
@@ -914,15 +844,17 @@ class App {
 
                 svgContainerElement.appendChild(svgClonedElement);
 
-                me.summaryOffsetY += 90;
+                me.summaryOffsetY += 68;
                 me.evcRendered = true;
             }
 
             const sessionEnergy = charger.Charge_Session_Energy ?? 0;
+            const maxChargeCurrent = charger.Charge_Limit ?? 0;
 
-            $('#evc_panel >> tspan.charging_state').text(charger.Charging_State ?? '—');
+            const chargingState = charger.Charging_State ?? '—';
+            const statusText = activePowerW > 0 ? `${chargingState} ${activePowerKw} kW` : chargingState;
+            $('#evc_panel >> tspan.charging_state').text(statusText);
             $('#evc_panel >> tspan.charge_limit').text(`${maxChargeCurrent}A`);
-            $('#evc_panel >> tspan.active_power').text(`${activePowerKw.toFixed(2)} kW`);
             $('#evc_panel >> tspan.charge_session_energy').text(`${sessionEnergy.toFixed(2)} kWh`);
         }
     }

@@ -7,8 +7,10 @@ const GatewaySensors = [{
     type: SensorType.Summary
 }];
 
+// Sensors marked "internal" have no `type` and are never rendered directly.
+// They provide raw values consumed by data derivations (e.g. Battery_State, Load_Power, 3-phase flows).
 const InverterSensors = [{
-    id: 'Last_Updated_Time',
+    id: 'Last_Updated_Time', // internal: consumed by updateRefreshIntervalText()
     mapping: [
         'Last_Updated_Time',
         'Stats.Last_Updated_Time'
@@ -19,7 +21,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.EarliestDate
     }
 }, {
-    id: 'Charge_Power',
+    id: 'Charge_Power', // internal: used for Battery_State derivation and 3-phase flow calculation
     mapping: [
         'Power.Power.Charge_Power',
         'Power.Power.Battery_Charge_Power'
@@ -30,7 +32,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Discharge_Power',
+    id: 'Discharge_Power', // internal: used for Battery_State derivation and 3-phase flow calculation
     mapping: [
         'Power.Power.Discharge_Power',
         'Power.Power.Battery_Discharge_Power'
@@ -52,12 +54,12 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Export_Power',
+    id: 'Export_Power', // internal: used for multi-inverter load calculation and 3-phase flow override
     mapping: 'Power.Power.Export_Power',
     converter: Converters.wattsToKw,
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,
-        singlePhaseMultipleInverters: CombinatorType.Addition,
+        singlePhaseMultipleInverters: CombinatorType.Any,
         multiplePhases: CombinatorType.Addition
     }
 }, {
@@ -362,16 +364,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.All
     }
 }, {
-    id: 'Export_Power',
-    mapping: 'Power.Power.Export_Power',
-    converter: Converters.wattsToKw,
-    combinator: {
-        singlePhaseSingleInverter: CombinatorType.Any,
-        singlePhaseMultipleInverters: CombinatorType.Any,
-        multiplePhases: CombinatorType.Addition
-    }
-}, {
-    id: 'Import_Power',
+    id: 'Import_Power', // internal: used for multi-inverter load calculation
     mapping: 'Power.Power.Import_Power',
     converter: Converters.wattsToKw,
     combinator: {
@@ -380,7 +373,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Meter_Import_Power',
+    id: 'Meter_Import_Power', // internal: more accurate import figure for 3-phase, overrides Import_Power
     mapping: 'Power.Power.Meter_Import_Power',
     converter: Converters.wattsToKw,
     combinator: {
@@ -389,7 +382,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Meter_Export_Power',
+    id: 'Meter_Export_Power', // internal: more accurate export figure for 3-phase, overrides Export_Power
     mapping: 'Power.Power.Meter_Export_Power',
     converter: Converters.wattsToKw,
     combinator: {
@@ -398,7 +391,7 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
-    id: 'Num_Phases',
+    id: 'Num_Phases', // internal: consumed by Helpers.isThreePhaseInverter()
     mapping: 'raw.invertor.num_phases',
     combinator: {
         singlePhaseSingleInverter: CombinatorType.Any,

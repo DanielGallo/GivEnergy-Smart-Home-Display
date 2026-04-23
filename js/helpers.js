@@ -73,6 +73,104 @@ class Helpers {
     }
 
     /**
+     * Clamps a power value in watts to zero if it is below the minimum meaningful threshold (10 W).
+     * Values below this threshold are treated as noise/idle and should not be rendered.
+     * @param {number} watts The power value in watts
+     * @returns {number} The clamped value
+     */
+    static clampPower(watts) {
+        return watts < 10 ? 0 : watts;
+    }
+
+    /**
+     * Calculates the power flow breakdown for a 3-phase inverter.
+     * 3-phase inverters don't return flow data from GivTCP, so the flows are derived from
+     * the available power values using a priority-based dispatch model.
+     * @param {Object} baseData Flat map of sensor IDs to their current values
+     * @returns {Object} Flow values keyed by flow name (e.g. Solar_to_House, Grid_to_Battery)
+     */
+    static calculateThreePhaseFlows(baseData) {
+        let batteryToGrid = 0;
+        let batteryToHouse = 0;
+        let gridToBattery = 0;
+        let gridToHouse = 0;
+        let solarToBattery = 0;
+        let solarToGrid = 0;
+        let solarToHouse = 0;
+
+        let remainingSolar = baseData.PV_Power;
+        let remainingGrid = baseData.Grid_Power;
+        let remainingLoad = baseData.Load_Power;
+
+        // Supply the house load first from solar
+        if (remainingSolar >= remainingLoad) {
+            solarToHouse = remainingLoad;
+            remainingSolar -= remainingLoad;
+            remainingLoad = 0;
+        } else {
+            solarToHouse = remainingSolar;
+            remainingLoad -= remainingSolar;
+            remainingSolar = 0;
+        }
+
+        // Battery discharges to cover remaining load
+        if (remainingLoad > 0 && baseData.Discharge_Power > 0) {
+            if (baseData.Discharge_Power >= remainingLoad) {
+                batteryToHouse = remainingLoad;
+                remainingLoad = 0;
+            } else {
+                batteryToHouse = baseData.Discharge_Power;
+                remainingLoad -= baseData.Discharge_Power;
+            }
+        }
+
+        // Grid covers any remaining load
+        if (remainingLoad > 0 && remainingGrid > 0) {
+            if (remainingGrid >= remainingLoad) {
+                gridToHouse = remainingLoad;
+                remainingGrid -= remainingLoad;
+                remainingLoad = 0;
+            } else {
+                gridToHouse = remainingGrid;
+                remainingLoad -= remainingGrid;
+                remainingGrid = 0;
+            }
+        }
+
+        // Remaining solar charges the battery; shortfall comes from the grid
+        if (baseData.Charge_Power > 0) {
+            if (remainingSolar >= baseData.Charge_Power) {
+                solarToBattery = baseData.Charge_Power;
+                remainingSolar -= baseData.Charge_Power;
+            } else {
+                solarToBattery = remainingSolar;
+                remainingSolar = 0;
+                gridToBattery = baseData.Charge_Power - solarToBattery;
+            }
+        }
+
+        // Any surplus solar is exported to the grid
+        if (remainingSolar > 0) {
+            solarToGrid = remainingSolar;
+        }
+
+        // Any battery discharge beyond house load goes to the grid
+        if (baseData.Discharge_Power > batteryToHouse) {
+            batteryToGrid = baseData.Discharge_Power - batteryToHouse;
+        }
+
+        return {
+            Battery_to_Grid: batteryToGrid,
+            Battery_to_House: batteryToHouse,
+            Grid_to_Battery: gridToBattery,
+            Grid_to_House: gridToHouse,
+            Solar_to_Battery: solarToBattery,
+            Solar_to_Grid: solarToGrid,
+            Solar_to_House: solarToHouse
+        };
+    }
+
+    /**
      * Checks whether the provided inverter data corresponds to a 3-phase inverter.
      *
      * @param {Object} inverter - The inverter data to analyse.

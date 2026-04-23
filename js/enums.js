@@ -23,7 +23,6 @@ const CombinatorType = {
     Addition: 'Addition',
     Average: 'Average',
     EarliestDate: 'EarliestDate',
-    Separate: 'Separate',
     Ignore: 'Ignore'
 }
 
