@@ -25,6 +25,7 @@ class App {
         me.singleInverter = true;
         me.summaryOffsetY = 3;
         me.hasEvc = false;
+        me.evcChecked = false;
         me.cachedEvcData = null;
         me.evcRendered = false;
         me.cachedAioData = [];
@@ -92,6 +93,7 @@ class App {
             .then(data => {
                 window.appVersion = data.version;
                 console.info(`GivEnergy Dashboard version ${data.version}`);
+                console.info(`For feedback and issues related to this web dashboard: https://github.com/DanielGallo/GivEnergy-Smart-Home-Display/issues`)
                 if (me.debugMode) {
                     $('#debug_version').text(`v${data.version}`);
                 }
@@ -243,34 +245,38 @@ class App {
             });
         });
 
-        // Fetch EVC data alongside inverter data — a missing file (sample mode) or 500 (live mode, no EVC fitted)
-        // both resolve with null rather than rejecting, so a missing EVC never blocks inverter rendering.
-        let evcFetchUrl;
-        if (me.useSampleData) {
-            let port = window.location.port;
-            evcFetchUrl = `${me.baseUrl}:${port}/data_samples/${me.sampleDataName}/evc.json`;
-        } else {
-            evcFetchUrl = `${me.baseUrl}/getEVCCache`;
-        }
+        // Only fetch EVC data if it hasn't been checked yet, or if a previous check confirmed an EVC is present.
+        let evcFetchPromise = Promise.resolve();
+        if (!me.evcChecked || me.hasEvc) {
+            let evcFetchUrl;
+            if (me.useSampleData) {
+                let port = window.location.port;
+                evcFetchUrl = `${me.baseUrl}:${port}/data_samples/${me.sampleDataName}/evc.json`;
+            } else {
+                evcFetchUrl = `${me.baseUrl}:${me.givTcpHosts[0].port}/getEVCCache`;
+            }
 
-        const evcFetchPromise = fetch(evcFetchUrl, {
-            mode: 'cors',
-            headers: {
-                'Access-Control-Allow-Origin': '*'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                return null;
-            }
-            return response.json();
-        })
-        .then(data => {
-            me.cachedEvcData = data;
-        })
-        .catch(() => {
-            me.cachedEvcData = null;
-        });
+            evcFetchPromise = fetch(evcFetchUrl, {
+                mode: 'cors',
+                headers: {
+                    'Access-Control-Allow-Origin': '*'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                me.cachedEvcData = data;
+                me.evcChecked = true;
+            })
+            .catch(() => {
+                me.cachedEvcData = null;
+                me.evcChecked = true;
+            });
+        }
 
         Promise.all([...fetchPromises, evcFetchPromise])
             .then(() => {
