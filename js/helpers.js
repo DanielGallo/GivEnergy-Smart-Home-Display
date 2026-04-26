@@ -171,6 +171,32 @@ class Helpers {
     }
 
     /**
+     * Finds the Gateway_Mode value from a gateway's data payload.
+     * The gateway details live under a top-level key named after the gateway's serial number.
+     * If the serial number is absent (e.g. anonymised sample data), scan all top-level keys
+     * for the one that contains a Gateway_Mode property.
+     * @param {Object} data The raw data payload for a gateway device
+     * @returns {string|null} The Gateway_Mode string, or null if not found
+     */
+    static getGatewayMode(data) {
+        const serial = data.raw && data.raw.invertor && data.raw.invertor.serial_number;
+
+        if (serial) {
+            const mode = this.getPropertyValueFromMapping(data, `${serial}.Gateway_Mode`);
+            if (mode !== undefined) return mode;
+        }
+
+        for (const key of Object.keys(data)) {
+            const val = data[key];
+            if (val && typeof val === 'object' && 'Gateway_Mode' in val) {
+                return val['Gateway_Mode'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Checks whether the provided inverter data corresponds to a 3-phase inverter.
      *
      * @param {Object} inverter - The inverter data to analyse.

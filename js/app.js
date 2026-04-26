@@ -27,6 +27,9 @@ class App {
         me.hasEvc = false;
         me.cachedEvcData = null;
         me.evcRendered = false;
+        me.cachedAioData = [];
+        me.processedAioData = {};
+        me.gatewayAggregatesInverters = false;
 
         // Generate URL to GivTCP based on current URL of web app
         let baseUrl = window.location.protocol + '//' + window.location.hostname;
@@ -82,6 +85,17 @@ class App {
             $('#inverter_panel').hide();
             $('#panel_divider').hide();
         }
+
+        // Fetch the version number
+        fetch('./version.json')
+            .then(response => response.json())
+            .then(data => {
+                window.appVersion = data.version;
+                console.info(`GivEnergy Dashboard version ${data.version}`);
+                if (me.debugMode) {
+                    $('#debug_version').text(`v${data.version}`);
+                }
+            });
 
         // Fetch the settings from `app.json`
         fetch('./app.json')
@@ -171,9 +185,12 @@ class App {
 
         me.cachedGatewayData = [];
         me.cachedInverterData = [];
+        me.cachedAioData = [];
         me.processedGatewayData = {};
         me.processedInverterData = {};
+        me.processedAioData = {};
         me.cachedEvcData = null;
+        me.gatewayAggregatesInverters = false;
 
         let fetchPromises = me.givTcpHosts.map((givTcpHost, index) => {
             let fetchUrl = `${me.baseUrl}:${givTcpHost.port}/readData`;
@@ -192,26 +209,37 @@ class App {
             }).then(response => {
                 return response.json();
             }).then(data => {
-                let target = me.cachedInverterData;
                 let serialNumber = null;
+                let rawModel = null;
 
-                if (data.raw
-                    && data.raw.invertor
-                    && data.raw.invertor.serial_number) {
-                    serialNumber = data.raw.invertor.serial_number;
-
-                    // If the device is a Gateway, add it to the Gateway data instead of the Inverter data
-                    if (serialNumber.startsWith('GW')) {
-                        target = me.cachedGatewayData;
-                    }
+                if (data.raw && data.raw.invertor) {
+                    serialNumber = data.raw.invertor.serial_number || null;
+                    rawModel = data.raw.invertor.model;
                 }
 
-                target.push({
+                const entry = {
                     name: givTcpHost.name,
                     sortOrder: givTcpHost.sortOrder,
                     data: data,
                     serialNumber: serialNumber
-                });
+                };
+
+                const isGateway = (serialNumber && serialNumber.startsWith('GW'))
+                    || (typeof rawModel === 'string' && rawModel === 'Gateway');
+
+                if (isGateway) {
+                    me.cachedGatewayData.push(entry);
+                    // If the gateway exposes Power.Flows it has aggregated data for the whole system,
+                    // so use it as the sole source for power/flow visualisation.
+                    if (data.Power && data.Power.Flows) {
+                        me.gatewayAggregatesInverters = true;
+                        me.cachedInverterData.push(entry);
+                    }
+                } else if (typeof rawModel === 'string' && rawModel === 'All_in_one') {
+                    me.cachedAioData.push(entry);
+                } else {
+                    me.cachedInverterData.push(entry);
+                }
             });
         });
 
@@ -247,6 +275,14 @@ class App {
         Promise.all([...fetchPromises, evcFetchPromise])
             .then(() => {
                 me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
+                me.cachedAioData.sort((a, b) => a.sortOrder - b.sortOrder);
+
+                // AIO units without an aggregating gateway behave as standalone inverters.
+                if (!me.gatewayAggregatesInverters && me.cachedAioData.length > 0) {
+                    me.cachedInverterData.push(...me.cachedAioData);
+                    me.cachedInverterData.sort((a, b) => a.sortOrder - b.sortOrder);
+                    me.cachedAioData = [];
+                }
 
                 if (me.cachedInverterData.length === 1) {
                     me.singleInverter = true;
@@ -324,6 +360,18 @@ class App {
             });
         }
 
+        // The gateway has aggregate flow/power data but lacks Energy.Rates (peak/off-peak import).
+        // Copy it from the first AIO so those sensors populate correctly via the existing combinators.
+        if (me.gatewayAggregatesInverters && me.cachedAioData.length > 0 && me.cachedInverterData.length > 0) {
+            const gatewayData = me.cachedInverterData[0].data;
+            const aioRates = me.cachedAioData[0].data.Energy && me.cachedAioData[0].data.Energy.Rates;
+
+            if (aioRates && !(gatewayData.Energy && gatewayData.Energy.Rates)) {
+                if (!gatewayData.Energy) gatewayData.Energy = {};
+                gatewayData.Energy.Rates = aioRates;
+            }
+        }
+
         // First pass: combine each sensor's values across inverters using its configured combinator
         InverterSensors.forEach((sensor) => {
             let value = null;
@@ -373,6 +421,19 @@ class App {
             }
         });
 
+        // When the gateway aggregates inverter data, extract per-AIO sensor values for summary panels.
+        if (me.gatewayAggregatesInverters) {
+            me.cachedAioData.forEach((cachedRecord, index) => {
+                me.processedAioData[index] = {};
+
+                InverterSensors.forEach((sensor) => {
+                    if (sensor.mapping) {
+                        me.processedAioData[index][sensor.id] = Helpers.getPropertyValueFromMapping(cachedRecord.data, sensor.mapping);
+                    }
+                });
+            });
+        }
+
         // If there are one or more Gateways
         if (me.cachedGatewayData.length > 0) {
             GatewaySensors.forEach((sensor) => {
@@ -382,11 +443,9 @@ class App {
                     let gateways = [];
 
                     me.cachedGatewayData.forEach((cachedRecord) => {
-                        let mappingPrefix = cachedRecord.data.raw.invertor.serial_number;
-
                         gateways.push({
                             data: {
-                                gatewayMode: Helpers.getPropertyValueFromMapping(me.cachedGatewayData[0].data, `${mappingPrefix}.Gateway_Mode`)
+                                gatewayMode: Helpers.getGatewayMode(cachedRecord.data)
                             }
                         });
                     });
@@ -505,9 +564,25 @@ class App {
 
     /**
      * Builds the inverter details array used to render the per-inverter summary panels.
+     * When the gateway aggregates all inverter data, AIO units are used for individual panels.
      */
     deriveInverterDetails() {
         const me = this;
+
+        if (me.gatewayAggregatesInverters) {
+            return me.cachedAioData.map((cachedRecord, index) => {
+                const data = me.processedAioData[index];
+                return {
+                    name: cachedRecord.name,
+                    data: data,
+                    rawData: cachedRecord.data,
+                    batteries: data.Battery_Details
+                        ? Helpers.getBatteriesFromInverter(data.Battery_Details)
+                        : []
+                };
+            });
+        }
+
         const inverterData = me.processedInverterData;
 
         return me.cachedInverterData.map((cachedRecord, index) => ({
@@ -705,7 +780,8 @@ class App {
         let svgCloneableInverterElement = $('#inverterDetails')[0];
         let svgCloneableBatteryElement = $('#batteryDetails')[0];
         let offsetX = 0;
-        let inverterOffsetAddition = 116;
+        // When the solar row is hidden (gateway aggregates), the panel is one row shorter.
+        let inverterOffsetAddition = me.gatewayAggregatesInverters ? 99 : 116;
         let batteryOffsetX = 65;
         let batteryOffsetYAddition = 36;
         let batteryPanelStartingPositionX = 162;
@@ -725,6 +801,16 @@ class App {
                 let inverterNameEl = $(`#inverter_${inverterIndex} > text.label`);
                 inverterNameEl.text(`Inverter (${inverter.name})`);
 
+                // When the gateway provides aggregate solar data, collapse the solar row so
+                // Target Charge takes its slot and no blank gap appears.
+                if (me.gatewayAggregatesInverters) {
+                    const solarValueTspan = svgClonedElement.querySelector('tspan.solar_power');
+                    const solarLabelTspan = solarValueTspan.previousElementSibling;
+                    solarLabelTspan.setAttribute('dy', '0');
+                    solarLabelTspan.textContent = '';
+                    solarValueTspan.textContent = '';
+                }
+
                 offsetX = batteryPanelStartingPositionX;
                 me.summaryOffsetY += inverterOffsetAddition;
 
@@ -732,30 +818,32 @@ class App {
                 let batteries = inverter.batteries.reverse();
                 let batteryIndex = batteries.length;
 
-                // Scale batteries down proportionally when more than 3, so they fit on one row
-                let batteryScale = Math.min(1, 3 / batteries.length);
-                let batteryShift = batteryPanelStartingPositionX * (1 - batteryScale);
-                let batteryGroupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                batteryGroupElement.setAttribute('transform', `translate(${batteryShift}, ${me.summaryOffsetY}) scale(${batteryScale})`);
-                svgContainerElement.appendChild(batteryGroupElement);
+                if (batteries.length > 0) {
+                    // Scale batteries down proportionally when more than 3, so they fit on one row
+                    let batteryScale = Math.min(1, 3 / batteries.length);
+                    let batteryShift = batteryPanelStartingPositionX * (1 - batteryScale);
+                    let batteryGroupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    batteryGroupElement.setAttribute('transform', `translate(${batteryShift}, ${me.summaryOffsetY}) scale(${batteryScale})`);
+                    svgContainerElement.appendChild(batteryGroupElement);
 
-                // The number of batteries can vary, so iterate over each battery
-                for (let battery in batteries) {
-                    let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
-                    svgClonedElement.setAttribute('transform', `translate(${offsetX}, 0)`);
-                    svgClonedElement.setAttribute('style', '');
-                    svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${--batteryIndex}`);
+                    // The number of batteries can vary, so iterate over each battery
+                    for (let battery in batteries) {
+                        let svgClonedElement = svgCloneableBatteryElement.cloneNode(true);
+                        svgClonedElement.setAttribute('transform', `translate(${offsetX}, 0)`);
+                        svgClonedElement.setAttribute('style', '');
+                        svgClonedElement.setAttribute('id', `battery_${inverterIndex}_${--batteryIndex}`);
 
-                    batteryGroupElement.appendChild(svgClonedElement);
+                        batteryGroupElement.appendChild(svgClonedElement);
 
-                    offsetX -= batteryOffsetX;
+                        offsetX -= batteryOffsetX;
+                    }
+
+                    offsetX = 0;
+                    me.summaryOffsetY += batteryOffsetYAddition + spacer;
                 }
 
                 // Reset reverse order
                 inverter.batteries.reverse();
-
-                offsetX = 0;
-                me.summaryOffsetY += batteryOffsetYAddition + spacer;
             });
 
             me.inverterRendered = true;
@@ -773,9 +861,11 @@ class App {
                 Formatters.sensorValue(inverter.data.Battery_State_of_Charge, Helpers.getSensorById('Battery_State_of_Charge'))
             );
 
-            $(`#inverter_${inverterIndex} >> tspan.solar_power`).text(
-                Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power'))
-            );
+            if (!me.gatewayAggregatesInverters) {
+                $(`#inverter_${inverterIndex} >> tspan.solar_power`).text(
+                    Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power'))
+                );
+            }
 
             $(`#inverter_${inverterIndex} >> tspan.target_soc`).text(
                 Formatters.sensorValue(inverter.data.Battery_Target_State_of_Charge, Helpers.getSensorById('Battery_Target_State_of_Charge'))

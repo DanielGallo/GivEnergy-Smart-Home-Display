@@ -59,8 +59,88 @@ You can append additional query-string parameters to show more advanced informat
 For example, you can append these query-string parameters like this:
 
 ```
-http://10.0.0.210:3000?ShowAdvancedInfo=true&ShowTime=true
+http://10.0.0.210:3000?ShowAdvancedInfo=true&ShowTime=true&Hostname=homeassistant.local
 ```
+
+## Testing a downloaded copy against your GivTCP environment
+
+This section explains how to test the latest version of the dashboard against your own live GivTCP setup, before the latest code is released as part of the main GivTCP project.
+
+Your GivTCP instance needs to be running and reachable on your home network before you begin.
+
+### Step 1 - Download the code
+
+Click the green **Code** button near the top of this GitHub page, then choose **Download ZIP**. Once downloaded, extract the ZIP to a folder on your computer.
+
+### Step 2 - Copy your settings into app.json
+
+Open the `app.json` file (in the root of the extracted folder) in a text editor. It looks something like this:
+
+```json
+{
+  "givTcpHosts": [
+    { 
+      "name": "House", 
+      "port": "6345"
+    }, {
+      "name": "Garage",
+      "port": "6346"
+    }
+  ],
+  "solarRate": 0.306,
+  "exportRate": 0.15
+}
+```
+
+The easiest way to get the correct values is to open your existing GivTCP dashboard's `app.json` in a browser. If GivTCP is running in Home Assistant, go to:
+
+```
+http://homeassistant.local:3000/app.json
+```
+
+Copy the entire contents and paste them into the `app.json` file you opened in Step 2, replacing everything that was already there. Save the file.
+
+Here is what each property means, for reference:
+
+- **`givTcpHosts`** - one entry per inverter, each with a display name and the port GivTCP uses for that inverter. The default port is `6345`.
+- **`solarRate`** - your solar generation/import rate in £/kWh.
+- **`exportRate`** - your export rate in £/kWh.
+
+### Step 3 - Start a simple web server
+
+The dashboard has to be served over a local web server. Opening `index.html` directly from your file browser will not work.
+
+The easiest way is to use Python, which comes pre-installed on Mac and most Linux systems. Windows users can download it for free from [python.org](https://www.python.org/downloads/).
+
+Open a terminal (or Command Prompt on Windows), navigate to the folder you extracted in Step 1, and run:
+
+```bash
+python3 -m http.server 8080
+```
+
+Leave this running in the background. You should see a message like `Serving HTTP on 0.0.0.0 port 8080`.
+
+### Step 4 - Open the dashboard in your browser
+
+Open your browser and go to:
+
+```
+http://localhost:8080?Hostname=192.168.1.100
+```
+
+Replace `192.168.1.100` with the IP address of the machine running GivTCP on your home network (this is the same address you would normally use to access your GivTCP dashboard, without the port number).
+
+The dashboard should load and start showing live data within a few seconds.
+
+### Troubleshooting
+
+**The dashboard loads but shows no data**
+
+Check that you used the correct IP address in the URL above (`?Hostname=`). To confirm GivTCP is reachable, try opening `http://192.168.1.100:6345/readData` in your browser (replacing the IP with yours). You should see a page of data rather than an error.
+
+**The browser is blocking the connection (CORS error)**
+
+If you open the browser console (press F12, then click the Console tab) and see an error mentioning `CORS` or `Cross-Origin`, your browser is blocking the connection between the local web server and GivTCP. The simplest fix is to open the dashboard from a different device on the same network, such as your phone, and point it at your computer's IP address instead of `localhost`.
 
 ## Other Notes
 
