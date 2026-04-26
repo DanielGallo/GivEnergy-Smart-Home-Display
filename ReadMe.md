@@ -24,7 +24,7 @@ Data is obtained from the inverter by using REST requests to GivTCP on the local
 The web app can run on a mobile, tablet, or desktop browser, and is designed to run in both portrait and landscape modes. 
 It should render correctly on all devices/browsers. Let me know if you spot any rendering issues!
 
-![Portait example](graphics/ReadMe-Portrait.png)
+<img src="graphics/ReadMe-Portrait.png" width="400" alt="Portrait example">
 
 ## Setup
 
