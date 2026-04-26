@@ -1,0 +1,15 @@
+{
+  "name": "givenergy-smart-home-display",
+  "type": "module",
+  "scripts": {
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test": "vitest run && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "serve": "^14.0.0",
+    "vitest": "^3.0.0"
+  }
+}
