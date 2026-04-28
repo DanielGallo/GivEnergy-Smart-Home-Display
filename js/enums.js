@@ -5,7 +5,10 @@ const SensorType = {
 };
 
 const Prefix = {
-    Currency: '£'
+    Currency: '£',
+    CurrencyApprox: '~£',
+    CurrencyPositive: '+£',
+    CurrencyNegative: '–£'
 };
 
 const Suffix = {

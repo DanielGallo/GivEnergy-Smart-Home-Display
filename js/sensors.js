@@ -298,7 +298,7 @@ const InverterSensors = [{
     mapping: 'Energy.Rates.Day_Cost',
     textElementId: 'energy_imported_peak_cost_text',
     type: SensorType.Summary,
-    prefix: Prefix.Currency,
+    prefix: Prefix.CurrencyNegative,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
     combinator: {
@@ -311,7 +311,7 @@ const InverterSensors = [{
     mapping: 'Energy.Rates.Night_Cost',
     textElementId: 'energy_imported_offpeak_cost_text',
     type: SensorType.Summary,
-    prefix: Prefix.Currency,
+    prefix: Prefix.CurrencyNegative,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
     combinator: {
@@ -324,7 +324,7 @@ const InverterSensors = [{
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_income',
     type: SensorType.Summary,
-    prefix: Prefix.Currency,
+    prefix: Prefix.CurrencyPositive,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
     combinator: {
@@ -337,7 +337,7 @@ const InverterSensors = [{
     mapping: 'Energy.Today.PV_Energy_Today_kWh',
     textElementId: 'solar_generated_income_text',
     type: SensorType.Summary,
-    prefix: Prefix.Currency,
+    prefix: Prefix.CurrencyApprox,
     converter: Converters.numberToCurrency,
     forceRefresh: true,
     combinator: {

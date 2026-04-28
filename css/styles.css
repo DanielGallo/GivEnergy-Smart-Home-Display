@@ -111,10 +111,14 @@ tspan.batterylabel {
 }
 
 .active circle#power_grid_circle, #power_grid.active path.graphic, #summary_panel path.graphic-grid {
-    stroke: #e53935;
+    stroke: #d53330;
 }
 
-#summary_panel path.graphic-grid {
+#summary_panel path.graphic-grid-export {
+    stroke: #4caf50;
+}
+
+#summary_panel path.graphic-grid, #summary_panel path.graphic-grid-export {
     stroke-width: 2;
 }
 
@@ -136,4 +140,17 @@ tspan.batterylabel {
 
 .active circle#power_evc_circle, #power_evc.active path.graphic, #power_evc.active circle.graphic, #summary_panel path.graphic-evc {
     stroke: #65a622;
+}
+
+#solar_generated_income_text {
+    fill: #fdd835;
+}
+
+#energy_imported_peak_cost_text,
+#energy_imported_offpeak_cost_text {
+    fill: #d53330;
+}
+
+#energy_exported_income {
+    fill: #4caf50;
 }
