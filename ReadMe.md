@@ -10,59 +10,79 @@ Data can be summarised if you are using a single inverter, multiple inverters on
 in a 3-phase environment. The app should be able to summarise data from GivEnergy AC inverters, Hybrid inverters, All In One (AIO) systems,
 Gateways, and the GivEnergy EV Charger (EVC).
 
-It is designed to fetch its data from [GivTCP](https://github.com/britkat1980/giv_tcp), and is bundled within recent versions of GivTCP.
+It is designed to fetch its data from [GivTCP](https://github.com/britkat1980/giv_tcp) on the local network, and is bundled within recent versions of GivTCP.
 
 Note: The app doesn't provide a way to change configuration options for inverters - it only shows a summary of the inverter, 
-power flows, and energy usage. It can be embedded in a Home Assistant dashboard view, or added to your phone's home screen
+power flows, and energy usage. It can be embedded in a Home Assistant dashboard view, or added as a shortcut to your phone's home screen
 for quickly checking the state of your GivEnergy system and energy usage.
 
 ## User interface
 
 ![Landscape example](graphics/ReadMe-Landscape.png)
 
-The user interface of the web app is rendered completely using SVG. The only external dependencies for the user interface
-are a little use of jQuery. The rest of the app consists of pure JavaScript and CSS.
-
-Data is obtained from the inverter by using REST requests to GivTCP on the local network.
-
 The web app can run on a mobile, tablet, or desktop browser, and is designed to run in both portrait and landscape modes. 
 It should render correctly on all devices/browsers. Let me know if you spot any rendering issues!
 
 <img src="graphics/ReadMe-Portrait.png" width="400" alt="Portrait example">
 
-## Setup
+## Setup and usage
 
 This web app is bundled with recent versions of [GivTCP](https://github.com/britkat1980/giv_tcp). 
 
-GivTCP is usually installed by users in Home Assistant. Once installed, the web dashboard can be enabled via the GivTCP
+GivTCP is usually installed by users in Home Assistant. Once GivTCP is installed, the web dashboard can be enabled via the GivTCP
 config (the Web tab), and usually runs on port 3000 by default, e.g. `http://homeassistant.local:3000`.
-
-## Usage
-
-The web app is accessed from the same network address as GivTCP, and will run on port 3000 by default. So you should be
-able to launch the web app via `http://homeassistant.local:3000` (assumes `homeassistant.local` is the host where GivTCP is running).
 
 You can append additional query-string parameters to show more advanced information:
 
-- `ShowAdvancedInfo=true` - this will show/hide advanced information for each inverter, including individual battery state of charge.
-  Defaults to `true`.
-- `ShowTime=true` - will show/hide the current time in the top-left corner of the app - useful if you want to use this fullscreen
+- `ShowAdvancedInfo=true` - show or hide the advanced information panel for each inverter - when shown, includes solar power per inverter and 
+  individual battery state of charge.
+  Defaults to `true` (shows the advanced info panel).
+- `ShowTime=true` - show or hide the current time in the top-left corner of the app - useful if you want to use this app fullscreen
   on a tablet or mobile device.
-  Defaults to `false`.
-- `Hostname=` - this will let you override the hostname or IP address for GivTCP. Useful if you want to render this web app from a 
-  different host than GivTCP. Defaults to using the same hostname as used in the browser.
+  Defaults to `false` (hides the time).
 - `LightMode=true` - switches the app to a light theme with a white background and dark text.
-  Defaults to `false` (dark mode).
+  Defaults to `false` (uses dark mode).
+- `Hostname=` - this will let you override the hostname or IP address for GivTCP. Useful if you want to render this web app from a
+  different host than GivTCP. Defaults to using the same hostname as used in the browser.
 
-For example, you can append these query-string parameters like this:
+For example, you can append query-string parameters like this:
 
 ```
 http://homeassistant.local:3000?ShowTime=true&LightMode=true
 ```
 
+## Adding to a Home Assistant Dashboard
+
+The web dashboard can be embedded directly into a Home Assistant dashboard using the built-in **Webpage** card.
+
+### Using the visual editor
+
+1. Open your Home Assistant dashboard and click the **pencil icon** to enter edit mode.
+2. Click **Add Card**, then search for and select **Webpage**.
+3. Enter the URL of the dashboard, e.g.
+   ```
+   http://homeassistant.local:3000
+   ```
+   You can append query-string parameters here too, for example:
+   ```
+   http://homeassistant.local:3000?ShowTime=true&LightMode=true
+   ```
+4. Set an appropriate **Aspect ratio** (e.g. `18:9` for landscape, `3:5` for portrait).
+5. Click **Save**.
+
+### Using YAML
+
+Switch the card editor to YAML mode and use the following configuration:
+
+```yaml
+type: iframe
+url: http://homeassistant.local:3000
+aspect_ratio: "18:9"
+```
+
 ## Testing a downloaded copy against your GivTCP environment
 
-This section explains how to test the latest version of the dashboard against your own live GivTCP setup, before the latest code is released as part of the main GivTCP project.
+This section explains how to test the latest version of the web dashboard against your own live GivTCP setup, before the latest code is released as part of the main GivTCP project.
 
 Your GivTCP instance needs to be running and reachable on your home network before you begin.
 
@@ -101,7 +121,8 @@ Copy the entire contents and paste them into the `app.json` file you opened in S
 Here is what each property means, for reference:
 
 - **`givTcpHosts`** - one entry per inverter, each with a display name and the port GivTCP uses for that inverter. The default port is `6345`.
-- **`solarRate`** - your solar generation/import rate in £/kWh.
+- **`solarRate`** - typically your peak import rate in £/kWh, used to calculate the equivalent cost of importing all generated solar energy during the day. 
+  Essentially, it represents how much that energy would have cost if drawn from the grid.
 - **`exportRate`** - your export rate in £/kWh.
 
 ### Step 3 - Start a simple web server
@@ -123,10 +144,10 @@ Leave this running in the background. You should see a message like `Serving HTT
 Open your browser and go to:
 
 ```
-http://localhost:8080?Hostname=192.168.1.100
+http://localhost:8080?Hostname=homeassistant.local
 ```
 
-Replace `192.168.1.100` with the IP address of the machine running GivTCP on your home network (this is the same address you would normally use to access your GivTCP dashboard, without the port number).
+Replace `homeassistant.local` with the hostname or IP address of the machine running GivTCP on your home network (this is the same address you would normally use to access your GivTCP dashboard, without the port number).
 
 The dashboard should load and start showing live data within a few seconds.
 
@@ -134,7 +155,7 @@ The dashboard should load and start showing live data within a few seconds.
 
 **The dashboard loads but shows no data**
 
-Check that you used the correct IP address in the URL above (`?Hostname=`). To confirm GivTCP is reachable, try opening `http://192.168.1.100:6345/readData` in your browser (replacing the IP with yours). You should see a page of data rather than an error.
+Check that you used the correct IP address in the URL above (`?Hostname=`). To confirm GivTCP is reachable, try opening `http://homeassistant.local:6345/readData` in your browser (replacing the hostname if necessary). You should see a page of data rather than an error.
 
 **The browser is blocking the connection (CORS error)**
 
@@ -143,3 +164,4 @@ If you open the browser console (press F12, then click the Console tab) and see 
 ## Other Notes
 
 - SVG icons were designed and generated using https://yqnn.github.io/svg-path-editor/
+- The user interface of the web app is rendered completely using SVG. The only external dependencies for the user interface are a little use of jQuery. The rest of the app consists of pure JavaScript and CSS.
