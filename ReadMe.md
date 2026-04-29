@@ -1,4 +1,4 @@
-# GivEnergy Dashboard
+# GivEnergy Web Dashboard
 
 ![](graphics/ReadMe-1.jpg)
 
@@ -6,11 +6,15 @@
 
 This is a web-based application for showing a live summary of energy data from one or more GivEnergy inverters.
 
-Data can be summarised if you are using a single inverter, or multiple inverters on a single phase, or multiple inverters
-in a 3-phase environment.
+Data can be summarised if you are using a single inverter, multiple inverters on a single phase, or multiple inverters
+in a 3-phase environment. The app should be able to summarise data from GivEnergy AC inverters, Hybrid inverters, All In One (AIO) systems,
+Gateways, and the GivEnergy EV Charger (EVC).
 
-It is designed to fetch its data from [GivTCP](https://github.com/britkat1980/giv_tcp), and is bundled within
-recent versions of GivTCP.
+It is designed to fetch its data from [GivTCP](https://github.com/britkat1980/giv_tcp), and is bundled within recent versions of GivTCP.
+
+Note: The app doesn't provide a way to change configuration options for inverters - it only shows a summary of the inverter, 
+power flows, and energy usage. It can be embedded in a Home Assistant dashboard view, or added to your phone's home screen
+for quickly checking the state of your GivEnergy system and energy usage.
 
 ## User interface
 
@@ -28,23 +32,15 @@ It should render correctly on all devices/browsers. Let me know if you spot any 
 
 ## Setup
 
-This web app is bundled with recent versions of [GivTCP](https://github.com/britkat1980/giv_tcp).
+This web app is bundled with recent versions of [GivTCP](https://github.com/britkat1980/giv_tcp). 
 
-1. Follow the installation instructions for [GivTCP](https://github.com/GivEnergy/giv_tcp) and set this up somewhere on 
-   your local network so that it's running 24/7. This runs inside a Docker container.
-2. When you configure GivTCP, you will need to set a few GivTCP parameters in the Docker Compose file in order to
-   use this web app:
-    1. `WEB_DASH` - set to `True` to enable this web dashboard.
-    2. `WEB_DASH_PORT` - set it to the default port `3000`.
-3. If you have multiple inverters and want the name of each inverter to be shown in the web app, you will also need to set 
-   the following parameters:
-    1. `INVERTOR_NAME_1` - a short friendly display name for the first inverter.
-    2. `INVERTOR_NAME_2` - a short friendly display name for the second inverter, etc.
+GivTCP is usually installed by users in Home Assistant. Once installed, the web dashboard can be enabled via the GivTCP
+config (the Web tab), and usually runs on port 3000 by default, e.g. `http://homeassistant.local:3000`.
 
 ## Usage
 
 The web app is accessed from the same network address as GivTCP, and will run on port 3000 by default. So you should be
-able to launch the web app via `http://10.0.0.210:3000` (assumes `10.0.0.210` is the host where GivTCP is running).
+able to launch the web app via `http://homeassistant.local:3000` (assumes `homeassistant.local` is the host where GivTCP is running).
 
 You can append additional query-string parameters to show more advanced information:
 
@@ -53,7 +49,7 @@ You can append additional query-string parameters to show more advanced informat
 - `ShowTime=true` - will show/hide the current time in the top-left corner of the app - useful if you want to use this fullscreen
   on a tablet or mobile device.
   Defaults to `false`.
-- `Hostname=` - this will let you override the hostname for GivTCP. Useful if you want to render this web app from a 
+- `Hostname=` - this will let you override the hostname or IP address for GivTCP. Useful if you want to render this web app from a 
   different host than GivTCP. Defaults to using the same hostname as used in the browser.
 - `LightMode=true` - switches the app to a light theme with a white background and dark text.
   Defaults to `false` (dark mode).
@@ -61,7 +57,7 @@ You can append additional query-string parameters to show more advanced informat
 For example, you can append these query-string parameters like this:
 
 ```
-http://10.0.0.210:3000?ShowAdvancedInfo=true&ShowTime=true&Hostname=homeassistant.local
+http://homeassistant.local:3000?ShowTime=true&LightMode=true
 ```
 
 ## Testing a downloaded copy against your GivTCP environment
