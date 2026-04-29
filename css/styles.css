@@ -154,3 +154,85 @@ tspan.batterylabel {
 #energy_exported_income {
     fill: #4caf50;
 }
+
+.battery-level-bar {
+    stroke: rgb(163, 163, 163);
+    stroke-width: 2px;
+}
+
+body.light-mode {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+body.light-mode text {
+    fill: #000000;
+}
+
+body.light-mode .circle {
+    fill: #ffffff;
+}
+
+body.light-mode .graphic {
+    fill: #ffffff;
+}
+
+body.light-mode .active text {
+    fill: #000000;
+}
+
+body.light-mode .idle text {
+    fill: #cccccc;
+}
+
+body.light-mode g.idle path.graphic {
+    stroke: #cccccc;
+}
+
+body.light-mode g.idle path.connector {
+    stroke: #cccccc;
+}
+
+body.light-mode .idle circle, body.light-mode .idle line.connector {
+    stroke: #cccccc;
+}
+
+body.light-mode g.active path.connector, body.light-mode g.active line.connector {
+    stroke: #404040;
+}
+
+body.light-mode marker path.connector {
+    fill: #404040;
+}
+
+body.light-mode #summary_panel text.clock {
+    fill: #555555;
+}
+
+body.light-mode text.refreshText {
+    fill: #555555;
+}
+
+body.light-mode tspan.label, body.light-mode text.label {
+    fill: #555555;
+}
+
+body.light-mode .battery-level-bar {
+    stroke: #555555;
+}
+
+body.light-mode .active circle#power_solar_circle, body.light-mode #power_solar.active path.graphic, body.light-mode #summary_panel path.graphic-solar {
+    stroke: #f57c00;
+}
+
+body.light-mode #solar_generated_income_text {
+    fill: #f57c00;
+}
+
+body.light-mode #summary_panel path.graphic-grid-export {
+    stroke: #388e3c;
+}
+
+body.light-mode #energy_exported_income {
+    fill: #388e3c;
+}

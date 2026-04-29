@@ -55,6 +55,8 @@ You can append additional query-string parameters to show more advanced informat
   Defaults to `false`.
 - `Hostname=` - this will let you override the hostname for GivTCP. Useful if you want to render this web app from a 
   different host than GivTCP. Defaults to using the same hostname as used in the browser.
+- `LightMode=true` - switches the app to a light theme with a white background and dark text.
+  Defaults to `false` (dark mode).
 
 For example, you can append these query-string parameters like this:
 

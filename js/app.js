@@ -44,6 +44,9 @@ class App {
             : true;
         me.showTime = urlParams.get('ShowTime') === 'true';
         me.debugMode = urlParams.get('DebugMode') === 'true';
+        me.lightMode = urlParams.get('LightMode') === 'true';
+
+        if (me.lightMode) document.body.classList.add('light-mode');
 
         // If the hostname has been overridden, use it
         if (hostname) {
