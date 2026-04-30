@@ -236,3 +236,11 @@ body.light-mode #summary_panel path.graphic-grid-export {
 body.light-mode #energy_exported_income {
     fill: #388e3c;
 }
+
+body.no-solar #power_solar,
+body.no-solar #solar_to_grid,
+body.no-solar #solar_to_battery,
+body.no-solar #solar_to_home,
+body.no-solar #summary_solar_row {
+    display: none;
+}

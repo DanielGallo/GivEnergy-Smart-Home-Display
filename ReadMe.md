@@ -40,6 +40,9 @@ You can append additional query-string parameters to show more advanced informat
 - `ShowTime=true` - show or hide the current time in the top-left corner of the app - useful if you want to use this app fullscreen
   on a tablet or mobile device.
   Defaults to `false` (hides the time).
+- `ShowSolar=false` - hide all solar-related elements, including the solar circle, power flow lines to and from solar, and the solar
+  generation summary. Useful for GivEnergy systems that do not have solar panels installed.
+  Defaults to `true` (shows solar).
 - `LightMode=true` - switches the app to a light theme with a white background and dark text.
   Defaults to `false` (uses dark mode).
 - `Hostname=` - this will let you override the hostname or IP address for GivTCP. Useful if you want to render this web app from a

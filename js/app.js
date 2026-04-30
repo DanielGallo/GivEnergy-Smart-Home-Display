@@ -45,8 +45,17 @@ class App {
         me.showTime = urlParams.get('ShowTime') === 'true';
         me.debugMode = urlParams.get('DebugMode') === 'true';
         me.lightMode = urlParams.get('LightMode') === 'true';
+        me.showSolar = urlParams.has('ShowSolar') ? urlParams.get('ShowSolar') === 'true' : true;
 
         if (me.lightMode) document.body.classList.add('light-mode');
+
+        if (!me.showSolar) {
+            document.body.classList.add('no-solar');
+
+            document.getElementById('summary_row_peak_import').setAttribute('transform', 'translate(0, -41)');
+            document.getElementById('summary_row_offpeak_import').setAttribute('transform', 'translate(0, -28)');
+            document.getElementById('summary_row_grid_export').setAttribute('transform', 'translate(0, -14)');
+        }
 
         // If the hostname has been overridden, use it
         if (hostname) {
@@ -790,7 +799,7 @@ class App {
         let svgCloneableBatteryElement = $('#batteryDetails')[0];
         let offsetX = 0;
         // When the solar row is hidden (gateway aggregates), the panel is one row shorter.
-        let inverterOffsetAddition = me.gatewayAggregatesInverters ? 99 : 116;
+        let inverterOffsetAddition = (me.gatewayAggregatesInverters || !me.showSolar) ? 99 : 116;
         let batteryOffsetX = 65;
         let batteryOffsetYAddition = 36;
         let batteryPanelStartingPositionX = 162;
@@ -812,7 +821,7 @@ class App {
 
                 // When the gateway provides aggregate solar data, collapse the solar row so
                 // Target Charge takes its slot and no blank gap appears.
-                if (me.gatewayAggregatesInverters) {
+                if (me.gatewayAggregatesInverters || !me.showSolar) {
                     const solarValueTspan = svgClonedElement.querySelector('tspan.solar_power');
                     const solarLabelTspan = solarValueTspan.previousElementSibling;
                     solarLabelTspan.setAttribute('dy', '0');
@@ -870,7 +879,7 @@ class App {
                 Formatters.sensorValue(inverter.data.Battery_State_of_Charge, Helpers.getSensorById('Battery_State_of_Charge'))
             );
 
-            if (!me.gatewayAggregatesInverters) {
+            if (!me.gatewayAggregatesInverters && me.showSolar) {
                 $(`#inverter_${inverterIndex} >> tspan.solar_power`).text(
                     Formatters.sensorValue(inverter.data.PV_Power, Helpers.getSensorById('PV_Power'))
                 );
@@ -989,6 +998,9 @@ class App {
         let height = document.body.clientHeight;
         let canvas = $('#canvas')[0];
 
+        const diagramOffsetY = me.showSolar ? 0 : -50;
+        const panelsOffsetY = me.showSolar ? 510 : 480;
+
         if (width > height) {
             // Landscape mode
             if (me.showAdvancedInfo) {
@@ -996,18 +1008,18 @@ class App {
             } else {
                 canvas.setAttribute('viewBox', '0 0 620 375');
             }
-            $('#diagram')[0].setAttribute('transform', '');
+            $('#diagram')[0].setAttribute('transform', diagramOffsetY ? `translate(0, ${diagramOffsetY})` : '');
             $('#panels')[0].setAttribute('transform', '');
         } else {
             // Portrait mode
             if (me.showAdvancedInfo) {
                 canvas.setAttribute('viewBox', '0 0 500 880');
-                $('#diagram')[0].setAttribute('transform', 'translate(-2, 0), scale(1.4)');
-                $('#panels')[0].setAttribute('transform', 'translate(-392, 510), scale(1.07)');
+                $('#diagram')[0].setAttribute('transform', `translate(-2, ${diagramOffsetY}), scale(1.4)`);
+                $('#panels')[0].setAttribute('transform', `translate(-392, ${panelsOffsetY}), scale(1.07)`);
             } else {
                 canvas.setAttribute('viewBox', '0 0 500 960');
-                $('#diagram')[0].setAttribute('transform', 'translate(-2, 0), scale(1.4)');
-                $('#panels')[0].setAttribute('transform', 'translate(-370, 510), scale(1.28)');
+                $('#diagram')[0].setAttribute('transform', `translate(-2, ${diagramOffsetY}), scale(1.4)`);
+                $('#panels')[0].setAttribute('transform', `translate(-370, ${panelsOffsetY}), scale(1.28)`);
             }
         }
 
