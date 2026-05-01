@@ -50,6 +50,11 @@ class App {
         me.lightMode = urlParams.get('LightMode') === 'true';
         me.showSolar = urlParams.has('ShowSolar') ? urlParams.get('ShowSolar') === 'true' : true;
 
+        const currencyParam = urlParams.get('CurrencySymbol');
+        if (currencyParam && currencyParam.length >= 1 && currencyParam.length <= 2) {
+            Formatters.currencySymbol = currencyParam;
+        }
+
         if (me.lightMode) document.body.classList.add('light-mode');
 
         if (!me.showSolar) {

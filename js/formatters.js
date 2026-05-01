@@ -1,4 +1,6 @@
 class Formatters {
+    static currencySymbol = '£';
+
     /**
      * Formats a value based on the properties defined on the sensor.
      *
@@ -29,9 +31,10 @@ class Formatters {
 
         // Add any prefix; for currency prefixes with a leading symbol (~/+/–), drop the symbol when value is zero
         if (sensor.prefix && !ignorePrefix) {
+            const sym = Formatters.currencySymbol;
             const prefix = (parseFloat(value) === 0 && sensor.prefix.includes('£'))
-                ? '£'
-                : sensor.prefix;
+                ? sym
+                : sensor.prefix.replaceAll('£', sym);
             text = `${prefix}${text}`;
         }
 
