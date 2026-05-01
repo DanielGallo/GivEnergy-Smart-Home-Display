@@ -21,6 +21,7 @@ class App {
         me.useSampleData = false;
         me.sampleDataName = null;
         me.baseUrl = null;
+        me.ingressBase = null;
         me.singlePhase = true;
         me.singleInverter = true;
         me.summaryOffsetY = 3;
@@ -63,6 +64,11 @@ class App {
         }
 
         me.baseUrl = baseUrl;
+
+        // When served via HA Ingress, window.location.pathname contains the ingress prefix
+        // (e.g. /app/local_givenergy_dashboard) which must be prepended to proxy fetch URLs
+        // so HA routes the request to this add-on's nginx rather than returning a 404 itself.
+        me.ingressBase = window.location.pathname.replace(/\/$/, '');
 
         // If debug mode is enabled
         if (me.debugMode) {
@@ -117,11 +123,8 @@ class App {
                 return response.json();
             })
             .then(data => {
-                me.solarRate = data.solarRate;
-                me.exportRate = data.exportRate;
-
                 const finalize = () => {
-                    if (me.givTcpHosts !== null && me.solarRate !== null && me.exportRate !== null) {
+                    if (me.givTcpHosts !== null) {
                         if (me.givTcpHosts.length > 1) {
                             me.singleInverter = false;
                         }
@@ -207,7 +210,9 @@ class App {
         me.gatewayAggregatesInverters = false;
 
         let fetchPromises = me.givTcpHosts.map((givTcpHost, index) => {
-            let fetchUrl = `${me.baseUrl}:${givTcpHost.port}/readData`;
+            let fetchUrl = givTcpHost.proxyPath
+                ? `${window.location.origin}${me.ingressBase}${givTcpHost.proxyPath}/readData`
+                : `${me.baseUrl}:${givTcpHost.port}/readData`;
             // For debugging purposes, enable inverter data to be read from static JSON files, to see how the dashboard displays it
             if (me.useSampleData) {
                 let port = window.location.port;
@@ -265,7 +270,10 @@ class App {
                 let port = window.location.port;
                 evcFetchUrl = `${me.baseUrl}:${port}/data_samples/${me.sampleDataName}/evc.json`;
             } else {
-                evcFetchUrl = `${me.baseUrl}:${me.givTcpHosts[0].port}/getEVCCache`;
+                const primaryHost = me.givTcpHosts[0];
+                evcFetchUrl = primaryHost.proxyPath
+                    ? `${window.location.origin}${me.ingressBase}${primaryHost.proxyPath}/getEVCCache`
+                    : `${me.baseUrl}:${primaryHost.port}/getEVCCache`;
             }
 
             evcFetchPromise = fetch(evcFetchUrl, {
@@ -390,6 +398,15 @@ class App {
             }
         }
 
+        // Read energy rates from the first device that has them (inverters first, then AIOs for
+        // gateway setups where the gateway itself carries no meaningful rates).
+        const ratesSource = [...me.cachedInverterData, ...me.cachedAioData]
+            .find(r => r.data.Energy?.Rates?.Day_Rate != null);
+        if (ratesSource) {
+            me.solarRate = ratesSource.data.Energy.Rates.Day_Rate;
+            me.exportRate = ratesSource.data.Energy.Rates.Export_Rate;
+        }
+
         // First pass: combine each sensor's values across inverters using its configured combinator
         InverterSensors.forEach((sensor) => {
             let value = null;
@@ -512,9 +529,9 @@ class App {
             case 'Load_Power':
                 return (me.singlePhase && !me.singleInverter) ? me.deriveLoadPower() : value;
             case 'Solar_Income':
-                return Converters.numberToCurrency(value * me.solarRate);
+                return me.solarRate != null ? Converters.numberToCurrency(value * me.solarRate) : null;
             case 'Export_Income':
-                return Converters.numberToCurrency(value * me.exportRate);
+                return me.exportRate != null ? Converters.numberToCurrency(value * me.exportRate) : null;
             case 'Inverter_Details':
                 return me.deriveInverterDetails();
             default:
