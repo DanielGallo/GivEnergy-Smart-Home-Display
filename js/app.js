@@ -1,5 +1,5 @@
 import { CombinatorType, SensorType, Suffix } from './enums.js';
-import { GatewaySensors, InverterSensors } from './sensors.js';
+import { EmsSensors, GatewaySensors, InverterSensors } from './sensors.js';
 import { Helpers } from './helpers.js';
 import { Formatters } from './formatters.js';
 import { Converters } from './converters.js';
@@ -32,6 +32,8 @@ class App {
         me.cachedAioData = [];
         me.processedAioData = {};
         me.gatewayAggregatesInverters = false;
+        me.cachedEmsData = [];
+        me.emsRendered = false;
 
         // Generate URL to GivTCP based on current URL of web app
         let baseUrl = window.location.protocol + '//' + window.location.hostname;
@@ -203,6 +205,7 @@ class App {
         me.cachedGatewayData = [];
         me.cachedInverterData = [];
         me.cachedAioData = [];
+        me.cachedEmsData = [];
         me.processedGatewayData = {};
         me.processedInverterData = {};
         me.processedAioData = {};
@@ -245,8 +248,11 @@ class App {
 
                 const isGateway = (serialNumber && serialNumber.startsWith('GW'))
                     || (typeof rawModel === 'string' && rawModel === 'Gateway');
+                const isEms = typeof rawModel === 'string' && rawModel === 'Ems';
 
-                if (isGateway) {
+                if (isEms) {
+                    me.cachedEmsData.push(entry);
+                } else if (isGateway) {
                     me.cachedGatewayData.push(entry);
                     // If the gateway exposes Power.Flows it has aggregated data for the whole system,
                     // so use it as the sole source for power/flow visualisation.
@@ -497,6 +503,91 @@ class App {
             });
         }
 
+        // If there are one or more EMS devices
+        if (me.cachedEmsData.length > 0) {
+            document.body.classList.add('has-ems');
+
+            // The EMS coordinates AC battery-only inverters that have no visibility of solar or
+            // the grid meter. Override PV and Grid power from the EMS's aggregate meter readings,
+            // then recalculate flows so the diagram renders correctly.
+            const emsData = me.cachedEmsData[0].data;
+            const pvPower = emsData.Power?.Generation_Load_Power ?? 0;
+            const rawGridPower = emsData.Power?.Grid_Power ?? 0; // positive = import, negative = export
+            const importPower = rawGridPower > 0 ? rawGridPower : 0;
+            const exportPower = rawGridPower < 0 ? Math.abs(rawGridPower) : 0;
+
+            me.processedInverterData.PV_Power = pvPower;
+            me.processedInverterData.Grid_Power = Math.abs(rawGridPower);
+            me.processedInverterData.Import_Power = importPower;
+            me.processedInverterData.Export_Power = exportPower;
+
+            const chargePower = me.processedInverterData.Charge_Power ?? 0;
+            const dischargePower = me.processedInverterData.Discharge_Power ?? 0;
+            const loadPower = pvPower + dischargePower + importPower - chargePower - exportPower;
+
+            const flows = Helpers.calculateThreePhaseFlows({
+                PV_Power: pvPower,
+                Grid_Power: importPower,
+                Load_Power: loadPower,
+                Charge_Power: chargePower,
+                Discharge_Power: dischargePower
+            });
+
+            me.processedInverterData.Battery_to_Grid = flows.Battery_to_Grid;
+            me.processedInverterData.Battery_to_House = flows.Battery_to_House;
+            me.processedInverterData.Grid_to_Battery = flows.Grid_to_Battery;
+            me.processedInverterData.Grid_to_House = flows.Grid_to_House;
+            me.processedInverterData.Solar_to_Battery = flows.Solar_to_Battery;
+            me.processedInverterData.Solar_to_Grid = flows.Solar_to_Grid;
+            me.processedInverterData.Solar_to_House = flows.Solar_to_House;
+
+            // Override energy totals from EMS aggregate meter readings.
+            // Sub-inverters are AC battery-only units with no grid/solar visibility, so their
+            // energy fields are all zero. Peak/off-peak stay zero (EMS has no time-of-use split).
+            const emsEnergy = emsData.Energy?.Today ?? {};
+            const pvEnergyToday = emsEnergy.Generation_Energy_Today_kWh ?? 0;
+            const exportEnergyToday = emsEnergy.Export_Energy_Today_kWh ?? 0;
+            const importEnergyToday = emsEnergy.Import_Energy_Today_kWh ?? 0;
+            const batteryChargeEnergy = emsEnergy.Inverter_In_Energy_Today_kWh ?? 0;
+            const batteryDischargeEnergy = emsEnergy.Inverter_Out_Energy_Today_kWh ?? 0;
+
+            me.processedInverterData.PV_Energy_Today_kWh = pvEnergyToday;
+            me.processedInverterData.Export_Energy_Today_kWh = exportEnergyToday;
+            me.processedInverterData.Load_Energy_Today_kWh = Math.max(0,
+                importEnergyToday + pvEnergyToday + batteryDischargeEnergy - exportEnergyToday - batteryChargeEnergy
+            );
+            // Solar_Income and Export_Income store the kWh input (same mapping as PV_Energy_Today_kWh /
+            // Export_Energy_Today_kWh) — deriveSensorValue then multiplies by rate to produce the £ amount.
+            me.processedInverterData.Solar_Income = pvEnergyToday;
+            me.processedInverterData.Export_Income = exportEnergyToday;
+
+            EmsSensors.forEach((sensor) => {
+                let value = null;
+
+                if (sensor.id === 'Ems_Details') {
+                    let emsDevices = [];
+
+                    me.cachedEmsData.forEach((cachedRecord) => {
+                        const emsInfo = Helpers.getEmsInfo(cachedRecord.data);
+                        emsDevices.push({
+                            data: {
+                                status: emsInfo ? emsInfo.status : '—'
+                            }
+                        });
+                    });
+
+                    value = emsDevices;
+                }
+
+                if (value || sensor.forceRefresh) {
+                    me.processItem({
+                        sensor: sensor,
+                        value: value
+                    });
+                }
+            });
+        }
+
         // Second pass: derive any computed sensor values, then render each sensor
         InverterSensors.forEach((sensor) => {
             let value = me.deriveSensorValue(sensor, me.processedInverterData[sensor.id]);
@@ -721,6 +812,11 @@ class App {
             && me.showAdvancedInfo) {
             me.renderGatewayDetails(value);
         } else if (sensor.type === SensorType.Summary
+            && sensor.id === 'Ems_Details'
+            && Array.isArray(value)
+            && me.showAdvancedInfo) {
+            me.renderEmsDetails(value);
+        } else if (sensor.type === SensorType.Summary
             && sensor.id === 'Inverter_Details'
             && Array.isArray(value)
             && me.showAdvancedInfo) {
@@ -800,6 +896,39 @@ class App {
 
             let modeEl = $(`#gateway_${gatewayIndex} >> tspan.gateway_mode`);
             modeEl.text(gateway.data.gatewayMode);
+        });
+    }
+
+    /**
+     * Renders or updates the EMS summary panel(s) in the advanced info section.
+     * @param {Array} emsDevices Array of EMS objects with data payloads
+     */
+    renderEmsDetails(emsDevices) {
+        const me = this;
+        let svgContainerElement = $('#inverter_panel')[0];
+        let svgCloneableEmsElement = $('#emsDetails')[0];
+        let emsOffsetAddition = 54;
+        let emsIndex = -1;
+
+        if (!me.emsRendered) {
+            emsDevices.forEach(() => {
+                let svgClonedElement = svgCloneableEmsElement.cloneNode(true);
+                svgClonedElement.setAttribute('transform', `translate(0, ${me.summaryOffsetY})`);
+                svgClonedElement.setAttribute('style', '');
+                svgClonedElement.setAttribute('id', `ems_${++emsIndex}`);
+
+                svgContainerElement.appendChild(svgClonedElement);
+
+                me.summaryOffsetY += emsOffsetAddition;
+            });
+
+            me.emsRendered = true;
+            emsIndex = -1;
+        }
+
+        emsDevices.forEach(ems => {
+            emsIndex++;
+            $(`#ems_${emsIndex} >> tspan.ems_status`).text(ems.data.status);
         });
     }
 
@@ -1050,8 +1179,8 @@ class App {
 
         const panelOriginY = 19;
 
-        // Two inverters without an EVC always fit without scaling.
-        if (me.inverterCount <= 2 && !me.hasEvc) {
+        // Two inverters without an EVC or EMS panel always fit without scaling.
+        if (me.inverterCount <= 2 && !me.hasEvc && !me.emsRendered) {
             $('#inverter_panel')[0].setAttribute('transform', `translate(610, ${panelOriginY})`);
             return;
         }

@@ -1,4 +1,4 @@
-import {InverterSensors} from "./sensors.js";
+import { InverterSensors } from "./sensors.js";
 
 class Helpers {
     /**
@@ -42,6 +42,11 @@ class Helpers {
      */
     static getBatteriesFromInverter(batteries) {
         const filtered = {};
+
+        if (typeof batteries === 'undefined') {
+            return [];
+        }
+
         let batteriesObject = batteries;
 
         // GivTCP v3 added the batteries under a nested object called `Battery_Stack_1`
@@ -193,6 +198,20 @@ class Helpers {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Extracts the EMS-specific info object from an EMS data payload.
+     * The EMS details live under a top-level key named after the EMS serial number.
+     * @param {Object} data The raw data payload for an EMS device
+     * @returns {Object|null} The EMS info object, or null if not found
+     */
+    static getEmsInfo(data) {
+        const serial = data.raw && data.raw.invertor && data.raw.invertor.serial_number;
+        if (serial && data[serial]) {
+            return data[serial];
+        }
         return null;
     }
 

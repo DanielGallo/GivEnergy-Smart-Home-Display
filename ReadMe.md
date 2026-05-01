@@ -8,7 +8,7 @@ This is a web-based application for showing a live summary of energy data from o
 
 Data can be summarised if you are using a single inverter, multiple inverters on a single phase, or multiple inverters
 in a 3-phase environment. The app should be able to summarise data from GivEnergy AC inverters, Hybrid inverters, All In One (AIO) systems,
-Gateways, and the GivEnergy EV Charger (EVC).
+Gateways, Energy Management System (EMS - _implementation in progress_), and the GivEnergy EV Charger (EVC).
 
 It is designed to fetch its data from [GivTCP](https://github.com/britkat1980/giv_tcp) on the local network, and is bundled within recent versions of GivTCP.
 

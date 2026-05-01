@@ -2,6 +2,11 @@ import { CombinatorType, Prefix, SensorType, Suffix } from './enums.js';
 import { Converters } from './converters.js';
 import { Formatters } from './formatters.js';
 
+const EmsSensors = [{
+    id: 'Ems_Details',
+    type: SensorType.Summary
+}];
+
 const GatewaySensors = [{
     id: 'Gateway_Details',
     type: SensorType.Summary
@@ -400,4 +405,4 @@ const InverterSensors = [{
     }
 }];
 
-export { GatewaySensors, InverterSensors };
+export { EmsSensors, GatewaySensors, InverterSensors };

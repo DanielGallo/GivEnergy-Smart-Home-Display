@@ -10,6 +10,11 @@ class Formatters {
      */
     static sensorValue(value, sensor, ignorePrefix = false, ignoreSuffix = false) {
         const me = this;
+
+        if ((typeof(value) === 'number' && isNaN(value)) || typeof(value) === 'undefined') {
+            value = 0;
+        }
+
         let text = value;
 
         // Format the value if a converter function has been set
@@ -22,9 +27,12 @@ class Formatters {
             text = sensor.formatter.call(me, text);
         }
 
-        // Add any prefix
+        // Add any prefix; for currency prefixes with a leading symbol (~/+/–), drop the symbol when value is zero
         if (sensor.prefix && !ignorePrefix) {
-            text = `${sensor.prefix}${text}`;
+            const prefix = (parseFloat(value) === 0 && sensor.prefix.includes('£'))
+                ? '£'
+                : sensor.prefix;
+            text = `${prefix}${text}`;
         }
 
         // Add any suffix
