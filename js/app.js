@@ -559,6 +559,7 @@ class App {
 
             me.processedInverterData.PV_Energy_Today_kWh = pvEnergyToday;
             me.processedInverterData.Export_Energy_Today_kWh = exportEnergyToday;
+            me.processedInverterData.EMS_Import_Energy_Today_kWh = importEnergyToday;
             me.processedInverterData.Load_Energy_Today_kWh = Math.max(0,
                 importEnergyToday + pvEnergyToday + batteryDischargeEnergy - exportEnergyToday - batteryChargeEnergy
             );
@@ -566,6 +567,16 @@ class App {
             // Export_Energy_Today_kWh) — deriveSensorValue then multiplies by rate to produce the £ amount.
             me.processedInverterData.Solar_Income = pvEnergyToday;
             me.processedInverterData.Export_Income = exportEnergyToday;
+
+            // Space summary rows evenly: hide peak/off-peak, show single Imported row.
+            if (me.showSolar) {
+                document.getElementById('summary_solar_row').setAttribute('transform', 'translate(0, 14)');
+                document.getElementById('summary_row_ems_import').setAttribute('transform', 'translate(0, 27)');
+                document.getElementById('summary_row_grid_export').setAttribute('transform', 'translate(0, -14)');
+            } else {
+                document.getElementById('summary_row_ems_import').setAttribute('transform', 'translate(0, -18)');
+                document.getElementById('summary_row_grid_export').setAttribute('transform', 'translate(0, -36)');
+            }
 
             EmsSensors.forEach((sensor) => {
                 let value = null;

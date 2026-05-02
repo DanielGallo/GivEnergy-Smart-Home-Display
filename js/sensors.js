@@ -256,6 +256,18 @@ const InverterSensors = [{
         multiplePhases: CombinatorType.Addition
     }
 }, {
+    id: 'EMS_Import_Energy_Today_kWh',
+    textElementId: 'energy_imported_ems_text',
+    type: SensorType.Summary,
+    suffix: Suffix.Energy,
+    formatter: Formatters.roundToOneDecimalPlace,
+    forceRefresh: true,
+    combinator: {
+        singlePhaseSingleInverter: CombinatorType.Any,
+        singlePhaseMultipleInverters: CombinatorType.Any,
+        multiplePhases: CombinatorType.Any
+    }
+}, {
     id: 'Export_Energy_Today_kWh',
     mapping: 'Energy.Today.Export_Energy_Today_kWh',
     textElementId: 'energy_exported_text',

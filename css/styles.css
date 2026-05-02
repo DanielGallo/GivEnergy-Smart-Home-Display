@@ -151,24 +151,17 @@ tspan.batterylabel {
     fill: #d53330;
 }
 
-body.has-ems #summary_row_peak_import path.graphic-grid,
-body.has-ems #summary_row_offpeak_import path.graphic-grid {
-    stroke: rgb(163, 163, 163);
+#summary_row_ems_import {
+    display: none;
 }
 
-body.has-ems #summary_row_peak_import text,
-body.has-ems #summary_row_offpeak_import text {
-    fill: rgb(163, 163, 163);
+body.has-ems #summary_row_peak_import,
+body.has-ems #summary_row_offpeak_import {
+    display: none;
 }
 
-body.light-mode.has-ems #summary_row_peak_import path.graphic-grid,
-body.light-mode.has-ems #summary_row_offpeak_import path.graphic-grid {
-    stroke: #555555;
-}
-
-body.light-mode.has-ems #summary_row_peak_import text,
-body.light-mode.has-ems #summary_row_offpeak_import text {
-    fill: #555555;
+body.has-ems #summary_row_ems_import {
+    display: unset;
 }
 
 #energy_exported_income {
