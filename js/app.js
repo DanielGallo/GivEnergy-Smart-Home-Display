@@ -550,7 +550,8 @@ class App {
             // Sub-inverters are AC battery-only units with no grid/solar visibility, so their
             // energy fields are all zero. Peak/off-peak stay zero (EMS has no time-of-use split).
             const emsEnergy = emsData.Energy?.Today ?? {};
-            const pvEnergyToday = emsEnergy.Generation_Energy_Today_kWh ?? 0;
+            const emsRaw = emsData.raw?.invertor ?? {};
+            const pvEnergyToday = (parseFloat(emsRaw.e_pv1_day) || 0) + (parseFloat(emsRaw.e_pv2_day) || 0);
             const exportEnergyToday = emsEnergy.Export_Energy_Today_kWh ?? 0;
             const importEnergyToday = emsEnergy.Import_Energy_Today_kWh ?? 0;
             const batteryChargeEnergy = emsEnergy.Inverter_In_Energy_Today_kWh ?? 0;
