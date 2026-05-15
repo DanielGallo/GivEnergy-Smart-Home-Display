@@ -37,6 +37,8 @@ You can append additional query-string parameters to show more advanced informat
 - `ShowAdvancedInfo=true` - show or hide the advanced information panel for each inverter - when shown, includes solar power per inverter and 
   individual battery state of charge.
   Defaults to `true` (shows the advanced info panel).
+- `ShowGeneratedCashValue=true` - show or hide the cash value shown next to `Generated`.
+  Defaults to `true` (shows the generated cash value).
 - `ShowTime=true` - show or hide the current time in the top-left corner of the app - useful if you want to use this app fullscreen
   on a tablet or mobile device.
   Defaults to `false` (hides the time).
@@ -53,7 +55,7 @@ You can append additional query-string parameters to show more advanced informat
 For example, you can append query-string parameters like this:
 
 ```
-http://homeassistant.local:3000?ShowTime=true&LightMode=true
+http://homeassistant.local:3000?ShowTime=true&LightMode=true&ShowGeneratedCashValue=false
 ```
 
 ## Adding to a Home Assistant Dashboard

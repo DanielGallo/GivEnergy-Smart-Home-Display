@@ -45,6 +45,9 @@ class App {
         me.showAdvancedInfo = urlParams.has('ShowAdvancedInfo')
             ? urlParams.get('ShowAdvancedInfo') === 'true'
             : true;
+        me.showGeneratedCashValue = urlParams.has('ShowGeneratedCashValue')
+            ? urlParams.get('ShowGeneratedCashValue') === 'true'
+            : true;
         me.showTime = urlParams.get('ShowTime') === 'true';
         me.debugMode = urlParams.get('DebugMode') === 'true';
         me.lightMode = urlParams.get('LightMode') === 'true';
@@ -63,6 +66,13 @@ class App {
             document.getElementById('summary_row_peak_import').setAttribute('transform', 'translate(0, -41)');
             document.getElementById('summary_row_offpeak_import').setAttribute('transform', 'translate(0, -28)');
             document.getElementById('summary_row_grid_export').setAttribute('transform', 'translate(0, -14)');
+        }
+
+        if (!me.showGeneratedCashValue) {
+            const generatedIncomeEl = document.getElementById('solar_generated_income_text');
+            if (generatedIncomeEl) {
+                generatedIncomeEl.setAttribute('display', 'none');
+            }
         }
 
         // If the hostname has been overridden, use it
@@ -607,6 +617,10 @@ class App {
 
         // Second pass: derive any computed sensor values, then render each sensor
         InverterSensors.forEach((sensor) => {
+            if (!me.showGeneratedCashValue && sensor.id === 'Solar_Income') {
+                return;
+            }
+
             let value = me.deriveSensorValue(sensor, me.processedInverterData[sensor.id]);
 
             if (value || sensor.forceRefresh) {
