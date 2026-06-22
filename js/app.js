@@ -242,7 +242,8 @@ class App {
                 mode: 'cors',
                 headers: {
                     'Access-Control-Allow-Origin': '*'
-                }
+                },
+                signal: AbortSignal.timeout(12000)
             }).then(response => {
                 return response.json();
             }).then(data => {
@@ -301,7 +302,8 @@ class App {
                 mode: 'cors',
                 headers: {
                     'Access-Control-Allow-Origin': '*'
-                }
+                },
+                signal: AbortSignal.timeout(12000)
             })
             .then(response => {
                 if (!response.ok) {
@@ -336,6 +338,9 @@ class App {
                 }
 
                 me.onResponse();
+            })
+            .catch(() => {
+                // Request timed out or failed; the next poll interval will retry
             })
             .finally(() => {
                 me.fetching = false;

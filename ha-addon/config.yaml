@@ -1,6 +1,6 @@
 name: "GivEnergy Smart Home Display"
 description: "Live energy dashboard for GivEnergy inverters via GivTCP"
-version: "2026.04.30"
+version: "2026.06.22"
 slug: "givenergy_dashboard"
 url: "https://github.com/DanielGallo/GivEnergy-Smart-Home-Display"
 init: false

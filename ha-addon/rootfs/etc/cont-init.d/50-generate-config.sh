@@ -24,6 +24,8 @@ for i in $(seq 0 $((MAX_INVERTERS - 1))); do
         proxy_http_version 1.1;
         proxy_set_header Host \$http_host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 10s;
         proxy_read_timeout 10s;
     }
 "
